@@ -1,0 +1,54 @@
+
+
+using FirmaElectronicaWorker.Services;
+using Microsoft.Extensions.Options;
+using FirmaElectronicaWorker.Models;
+
+using CommandLine;
+
+namespace FirmaElectronicaWorker;
+public class Program
+{
+
+    static void Main(string[] args)
+    {
+        IHost host = Host.CreateDefaultBuilder(args)
+            .UseWindowsService()
+            .ConfigureAppConfiguration((hostingContext, config) =>
+            {
+                //config.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
+                config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            })
+            .ConfigureServices(services =>
+            {
+                services.AddHostedService<Worker>();
+                ConfigureServices(services, args);
+            })
+            .Build();
+
+        host.Run();
+    }
+
+
+    private static void ConfigureServices(IServiceCollection services, string[] args)
+    {
+
+        services.AddSingleton<Worker>();
+        services.AddSingleton<AppSettingService>();
+        services.AddSingleton<FirmaSignBoxService>();
+
+
+        var result = Parser.Default.ParseArguments<Models.Options>(args);
+        if (result.Tag == ParserResultType.Parsed)
+        {
+            var parsedResult = (Parsed<Models.Options>)result;
+            services.AddSingleton(parsedResult.Value);
+        }
+        else
+        {
+            Environment.Exit(0);
+        }
+
+    }
+
+}
