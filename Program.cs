@@ -1,10 +1,7 @@
 
+using CommandLine;
 
 using FirmaElectronicaWorker.Services;
-using Microsoft.Extensions.Options;
-using FirmaElectronicaWorker.Models;
-
-using CommandLine;
 
 namespace FirmaElectronicaWorker;
 public class Program
@@ -16,7 +13,6 @@ public class Program
             .UseWindowsService()
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
-                //config.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             })
             .ConfigureServices(services =>
@@ -36,6 +32,7 @@ public class Program
         services.AddSingleton<Worker>();
         services.AddSingleton<AppSettingService>();
         services.AddSingleton<FirmaSignBoxService>();
+        services.AddSingleton<FirmaOnBoardingService>();
 
 
         var result = Parser.Default.ParseArguments<Models.Options>(args);

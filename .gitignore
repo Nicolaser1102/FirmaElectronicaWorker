@@ -1,5 +1,6 @@
 # Visual Studio
 .vscode/
+.vs/
 *.user
 *.suo
 *.userosscache
@@ -22,3 +23,10 @@ x86/
 # App settings (seguridad)
 appsettings.Development.json
 secrets.json
+
+# Copilot Indices
+CopilotIndices/
+
+#FileContentIndex
+
+FileContentIndex/*.vsidx

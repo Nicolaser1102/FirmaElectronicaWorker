@@ -2,11 +2,11 @@
 
 namespace FirmaElectronicaWorker.Services
 {
-    public class FirmaSignBoxService : IBaseService
+    public class FirmaOnBoardingService : IBaseService
     {
-        private readonly ILogger<FirmaSignBoxService> _logger;
+        private readonly ILogger<FirmaOnBoardingService> _logger;
 
-        public FirmaSignBoxService(ILogger<FirmaSignBoxService> logger)
+        public FirmaOnBoardingService(ILogger<FirmaOnBoardingService> logger)
         {
             _logger = logger;
         }
@@ -17,7 +17,7 @@ namespace FirmaElectronicaWorker.Services
             await Task.Delay(1);
 
             // Log execution for debugging purposes
-            _logger.LogInformation("Execute method in FirmaSignBoxService has been called. HOLA MUNDO");
+            _logger.LogInformation("Execute method in FirmaOnBoardignService has been called. HOLA FIRMA ON BOARDING");
         }
     }
 }

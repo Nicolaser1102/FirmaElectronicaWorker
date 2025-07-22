@@ -10,14 +10,16 @@ namespace FirmaElectronicaWorker
 
         public Worker(ILogger<Worker> logger,
             AppSettingService appSettings,
-            FirmaSignBoxService firmaSignBoxService
+            FirmaSignBoxService firmaSignBoxService,
+            FirmaOnBoardingService firmaOnBoardingService
             )
         {
             _logger = logger;
 
             _services = new List<ServicesModel>
             {
-                new ServicesModel(firmaSignBoxService, "FirmaSignBox", appSettings.Service.FirmaSignBox )
+                new ServicesModel(firmaSignBoxService, "FirmaSignBox", appSettings.Service.FirmaSignBox ),
+                new ServicesModel(firmaOnBoardingService, "FirmaOnBoarding", appSettings.Service.FirmaOnBoarding)
             };
         }
 
