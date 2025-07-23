@@ -33,6 +33,7 @@ public class Program
         services.AddSingleton<AppSettingService>();
         services.AddSingleton<FirmaSignBoxService>();
         services.AddSingleton<FirmaOnBoardingService>();
+        services.AddSingleton<CheckStatusFirmaService>();
 
 
         var result = Parser.Default.ParseArguments<Models.Options>(args);

@@ -23,6 +23,9 @@ namespace FirmaElectronicaWorker.Models.Settings
 
         [JsonPropertyName("FirmaOnBoarding")]
         public BaseServiceSetting FirmaOnBoarding { get; set; } = new BaseServiceSetting();
+        
+        [JsonPropertyName("CheckStatusFirma")]
+        public BaseServiceSetting CheckStatusFirma { get; set; } = new BaseServiceSetting();
 
 
     }
