@@ -2,7 +2,7 @@
 using CommandLine;
 using FirmaElectronicaWorker.Models;
 using FirmaElectronicaWorker.Services;
-using Microsoft.Extensions.Configuration;
+
 
 namespace FirmaElectronicaWorker;
 public class Program
@@ -34,7 +34,6 @@ public class Program
         services.AddSingleton<AppSettingService>();
         services.AddSingleton<FirmaSignBoxService>();
         services.AddSingleton<FirmaOnBoardingService>();
-        services.AddSingleton<CheckStatusFirmaService>();
 
         var configuration = new ConfigurationBuilder()
                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)

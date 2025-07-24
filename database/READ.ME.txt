@@ -1,0 +1,1 @@
+Todos los procedimientos almacenados se tienen que guardar en la base de datos INTERFACES, en la tabla WebApi.SeProcedimiento

@@ -1,5 +1,4 @@
 ﻿using FirmaElectronicaWorker.Interfaces;
-using System;
 
 using System.Text.Json.Serialization;
 
