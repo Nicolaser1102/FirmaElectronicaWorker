@@ -1,5 +1,7 @@
 ﻿
 
+using System.Text.Json.Serialization;
+
 namespace FirmaElectronicaWorker.Models
 {
     public class LoginRequestGS
@@ -8,11 +10,24 @@ namespace FirmaElectronicaWorker.Models
         public string Password { get; set; } = string.Empty;
     }
 
+    public class LoginRequestSignBox
+    {
+        public string username { get; set; } = string.Empty;
+        public string password { get; set; } = string.Empty;
+    }
+
     public class LoginResponse
     {
         public int SessionId { get; set; }
         public string? Token { get; set; }
         public string? Result { get; set; }
+    }
+
+    public class LoginResponseSignBox
+    {
+        [JsonPropertyName("id_token")]
+        public string Token { get; set; }
+
     }
 
     public class GenericRequest
@@ -41,6 +56,15 @@ namespace FirmaElectronicaWorker.Models
         public string NamePC { get; set; }
         public string LoginAPP { get; set; }
 
+
+        // SignBox URLs
+        public string LoginUrlSignBox { get; set; }
+        public string SignDocumentUrlSignBox { get; set; }
+        public string LoginUserSignBox { get; set; }
+        public string LoginPasswordSignBox { get; set; }
+
     }
+
+
 
 }

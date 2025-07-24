@@ -19,6 +19,7 @@ public class Program
             .ConfigureServices(services =>
             {
                 services.AddHostedService<Worker>();
+                services.AddHttpClient();
                 ConfigureServices(services, args);
             })
             .Build();
