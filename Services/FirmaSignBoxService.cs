@@ -202,73 +202,85 @@ namespace FirmaElectronicaWorker.Services
         {
 
 
-            using var clientMultipart = _httpClientFactory.CreateClient();
+
+
 
             string res = "";
-            string url = _urls.SignDocumentUrlSignBox;
-
-
-            string token = await ObtenerTokenSignBoxAsync();
-            clientMultipart.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-
-
-
-            using var content = new MultipartFormDataContent();
-
-
 
             string rutaArchivo = doc.RutaArchivo;
             var pdfStream = File.OpenRead(rutaArchivo);
-            content.Add(new StreamContent(pdfStream), "fileIn", Path.GetFileName(rutaArchivo));
-
-            //// b) Imagen de firma (Base64 en string)
-            //var imagePath = @"C:\DocumentosPruebaFirmaElectronica\25\firmaPruebaIA.png";
-            //if (System.IO.File.Exists(imagePath))
-            //{
-            //    var imgBytes = await System.IO.File.ReadAllBytesAsync(imagePath);
-            //    var imageBase64 = Convert.ToBase64String(imgBytes);
-            //    // Se envía como StringContent, no como StreamContent
-            //    content.Add(new StringContent(imageBase64), "image");
-            //}
-            //else
-            //{
-            //    _logger.LogWarning("⚠️ Imagen no encontrada: {Path}", imagePath);
-            //}
-
-
-            content.Add(new StringContent($"pruebaGreensoft200"), "webhookId");
-            content.Add(new StringContent("1091583"), "username");
-            content.Add(new StringContent("RY3qn76H"), "password");
-            content.Add(new StringContent("Javier123_"), "pin");
-            //content.Add(new StringContent("Firma de contrato"), "reason");
-            //content.Add(new StringContent("Quito"), "location");
-            //content.Add(new StringContent("71,473,201,522"), "position");
-            //content.Add(new StringContent("2"), "npage");
-
-
-
-
-            // d) ParagraphFormat como JSON en StringContent
-            //var pf = "[{ " +
-            //                "\"font\": [\"Universal-Bold\",6]," +
-            //                "\"align\": \"right\"," +
-            //                "\"data_format\": { \"timezone\": \"America/Guayaquil\", \"strtime\": \"%d/%m/%Y %H:%M:%S\" }," +
-            //                "\"format\": [" +
-            //                    "\"Firmado por:\"," +
-            //                    "\"$(CN)s\"," +
-            //                    "\"ID: $(serialNumber)s\"," +
-            //                    "\"Oficial de crédito\"" +
-            //                "]" +
-            //            "}]";
-            //content.Add(new StringContent(pf), "paragraphFormat");
-
-
-
-
 
             try
             {
+
+                using var clientMultipart = _httpClientFactory.CreateClient();
+
+                string url = _urls.SignDocumentUrlSignBox;
+
+
+                string token = await ObtenerTokenSignBoxAsync();
+
+
+                clientMultipart.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+
+
+
+                using var content = new MultipartFormDataContent();
+
+
+
+                
+                content.Add(new StreamContent(pdfStream), "fileIn", Path.GetFileName(rutaArchivo));
+
+
+                content.Add(new StringContent($"pruebaGreenSf07"), "webhookId");
+
+                // b) Imagen de firma (Base64 en string)
+                var imagePath = @"C:\DocumentosPruebaFirmaElectronica\25\firmaPruebaIA.png";
+                if (System.IO.File.Exists(imagePath))
+                {
+                    var imgBytes = await System.IO.File.ReadAllBytesAsync(imagePath);
+                    var imageBase64 = Convert.ToBase64String(imgBytes);
+                    // Se envía como StringContent, no como StreamContent
+                    content.Add(new StringContent(imageBase64), "image");
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Imagen no encontrada: {Path}", imagePath);
+                }
+
+
+                content.Add(new StringContent("1091583"), "username");
+                content.Add(new StringContent("RY3qn76H"), "password");
+                content.Add(new StringContent("Javier123_"), "pin");
+
+
+
+                content.Add(new StringContent("Firma de contrato"), "reason");
+
+                content.Add(new StringContent("Quito"), "location");
+
+                content.Add(new StringContent("2"), "npage");
+
+                // d) ParagraphFormat como JSON en StringContent
+                var pf = "[{ " +
+                                "\"font\": [\"Universal-Bold\",6]," +
+                                "\"align\": \"right\"," +
+                                "\"data_format\": { \"timezone\": \"America/Guayaquil\", \"strtime\": \"%d/%m/%Y %H:%M:%S\" }," +
+                                "\"format\": [" +
+                                    "\"Firmado por:\"," +
+                                    "\"$(CN)s\"," +
+                                    "\"ID: $(serialNumber)s\"," +
+                                    "\"Oficial de crédito\"" +
+                                "]" +
+                            "}]";
+                content.Add(new StringContent(pf), "paragraphFormat");
+
+                //content.Add(new StringContent("71,473,201,522"), "position");
+
+
+
                 var response = await clientMultipart.PostAsync(url, content);
 
                 var body = await response.Content.ReadAsStringAsync();
