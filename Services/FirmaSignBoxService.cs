@@ -143,10 +143,14 @@ namespace FirmaElectronicaWorker.Services
         private async Task<List<DocumentoPendiente>> ObtenerDocumentosPendientesFirmarSignbox()
         {
 
+
+            //!Aislar funcion inicio
             string url = _urls.GenericExecuteOrionApi;
             string tokenJwt = await ObtenerTokenJwtAsync();
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            //!Aislar funcion final
 
             var request = new GenericRequest
             {
@@ -158,6 +162,7 @@ namespace FirmaElectronicaWorker.Services
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await client.PostAsync(url, content);
+
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -193,120 +198,61 @@ namespace FirmaElectronicaWorker.Services
 
         }
 
-        
+
 
 
         //Enviara a firmar por SignBox los documentos pendientes para firmar
 
-        private async Task<string> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc)
+        public async Task<string> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc)
+
         {
-
-
-
-
-
-            string res = "";
-
-            string rutaArchivo = doc.RutaArchivo;
-            var pdfStream = File.OpenRead(rutaArchivo);
-
             try
             {
+                string rutaArchivo = doc.RutaArchivo;
+                if (!File.Exists(rutaArchivo))
+                    return "ERROR: El archivo no existe";
 
-                using var clientMultipart = _httpClientFactory.CreateClient();
+                using var client = _httpClientFactory.CreateClient();
 
-                string url = _urls.SignDocumentUrlSignBox;
+                string url = "https://eclipsoft.dev/signbox/api/sign";
+                string token = await ObtenerTokenSignBoxAsync(); // Tu método para obtener token
 
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-                string token = await ObtenerTokenSignBoxAsync();
+                var pdfStream = new FileStream(rutaArchivo, FileMode.Open, FileAccess.Read);
+                var pdfContent = new StreamContent(pdfStream);
+                pdfContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
 
+                var content = new MultipartFormDataContent();
 
-                clientMultipart.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-
-
-
-                using var content = new MultipartFormDataContent();
-
-
-
-                
-                content.Add(new StreamContent(pdfStream), "fileIn", Path.GetFileName(rutaArchivo));
-
-
-                content.Add(new StringContent($"pruebaGreenSf07"), "webhookId");
-
-                // b) Imagen de firma (Base64 en string)
-                var imagePath = @"C:\DocumentosPruebaFirmaElectronica\25\firmaPruebaIA.png";
-                if (System.IO.File.Exists(imagePath))
-                {
-                    var imgBytes = await System.IO.File.ReadAllBytesAsync(imagePath);
-                    var imageBase64 = Convert.ToBase64String(imgBytes);
-                    // Se envía como StringContent, no como StreamContent
-                    content.Add(new StringContent(imageBase64), "image");
-                }
-                else
-                {
-                    _logger.LogWarning("⚠️ Imagen no encontrada: {Path}", imagePath);
-                }
-
-
+                // Agrega todos los campos tal como en Postman
+                content.Add(pdfContent, "fileIn", Path.GetFileName(rutaArchivo));
+                content.Add(new StringContent("pruebaGreensoft45"), "webhookId");
+                content.Add(new StringContent("iVBORw0KGgoAAAANSUhEUgAABgcAAAM3..."), "image"); // Usa el valor real base64
+                content.Add(new StringContent("test"), "reason");
+                content.Add(new StringContent("Guayaquil, Ecuador"), "location");
                 content.Add(new StringContent("1091583"), "username");
                 content.Add(new StringContent("RY3qn76H"), "password");
                 content.Add(new StringContent("Javier123_"), "pin");
+                content.Add(new StringContent("10,10,150,59"), "position");
+                content.Add(new StringContent("0"), "npage");
 
+                var paragraphFormat = "[{\"font\":[\"Universal-Bold\",6],\"align\":\"right\",\"color\":\"#000000\"}]";
+                content.Add(new StringContent(paragraphFormat), "paragraphFormat");
 
+                // Envío
+                var response = await client.PostAsync(url, content);
+                var result = await response.Content.ReadAsStringAsync();
 
-                content.Add(new StringContent("Firma de contrato"), "reason");
-
-                content.Add(new StringContent("Quito"), "location");
-
-                content.Add(new StringContent("2"), "npage");
-
-                // d) ParagraphFormat como JSON en StringContent
-                var pf = "[{ " +
-                                "\"font\": [\"Universal-Bold\",6]," +
-                                "\"align\": \"right\"," +
-                                "\"data_format\": { \"timezone\": \"America/Guayaquil\", \"strtime\": \"%d/%m/%Y %H:%M:%S\" }," +
-                                "\"format\": [" +
-                                    "\"Firmado por:\"," +
-                                    "\"$(CN)s\"," +
-                                    "\"ID: $(serialNumber)s\"," +
-                                    "\"Oficial de crédito\"" +
-                                "]" +
-                            "}]";
-                content.Add(new StringContent(pf), "paragraphFormat");
-
-                //content.Add(new StringContent("71,473,201,522"), "position");
-
-
-
-                var response = await clientMultipart.PostAsync(url, content);
-
-                var body = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(body);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    res = "OK";
-                }
-                else
-                {
-                    res = $"Error: {response.StatusCode} - {response.ReasonPhrase}";  // Error de envío
-                }
+                return result;
             }
             catch (Exception ex)
             {
-                res = $"Error al firmar documento: {ex.Message}";  // Si ocurre una excepción
+                _logger.LogError(ex, "Error al firmar documento.");
+                return $"ERROR: {ex.Message}";
             }
-           finally
-            {
-    
-                    pdfStream.Dispose(); // asegúrate de cerrarlo al final
-                
-            }
-            return res;
         }
+
 
 
         //Instanciando un cliente HTTP para realizar solicitudes
