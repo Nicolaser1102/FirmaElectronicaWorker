@@ -286,33 +286,64 @@ namespace FirmaElectronicaWorker.Services
                 _logger.LogInformation("📄 Respuesta de SignBox: {Response}", result);
                 _logger.LogInformation("📄 Respuesta de SignBox: {Response}", result);
 
-                var resultSignBox = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Intentamos deserializar como Problem+JSON
+                    try
+                    {
+                        var apiError = JsonSerializer.Deserialize<ApiErrorResponse>(result);
+                        var detalles = apiError.Violations != null
+                            ? string.Join("; ", apiError.Violations.Select(v => $"{v.Field}: {v.Message}"))
+                            : apiError.Message;
 
-                if (resultSignBox == null)
+                        return new SignBoxSignResponse
+                        {
+                            Result = false,
+                            Status = apiError.Status.ToString(),
+                            Detail = $"Error {apiError.Status} {apiError.Title}: {detalles}",
+                            WebhookTxt = string.Empty,
+                            WebhookPdf = string.Empty
+                        };
+                    }
+                    catch (JsonException)
+                    {
+                        // Si no pudo parsear Problem+JSON, devolvemos el body crudo
+                        return new SignBoxSignResponse
+                        {
+                            Result = false,
+                            Status = ((int)response.StatusCode).ToString(),
+                            Detail = $"Error {(int)response.StatusCode}: {result}",
+                            WebhookTxt = string.Empty,
+                            WebhookPdf = string.Empty
+                        };
+                    }
+                }
+
+                // Si es 2xx, intentamos deserializar al DTO esperado
+                var éxito = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
+                if (éxito == null)
                 {
                     return new SignBoxSignResponse
                     {
                         Result = false,
                         Status = "ERROR",
-                        Detail = "No se pudo deserializar la respuesta de SignBox.",
-                        WebhookPdf = string.Empty,
-                        WebhookTxt = string.Empty
+                        Detail = "No se pudo deserializar respuesta válida.",
+                        WebhookTxt = string.Empty,
+                        WebhookPdf = string.Empty
                     };
                 }
-
-                return resultSignBox;
+                return éxito;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error al firmar documento.");
-
+                _logger.LogError(ex, "❌ Excepción al invocar SignBox");
                 return new SignBoxSignResponse
                 {
                     Result = false,
                     Status = "ERROR",
-                    Detail = $"Excepción al firmar: {ex.Message}",
-                    WebhookPdf = string.Empty,
-                    WebhookTxt = string.Empty
+                    Detail = $"Excepción: {ex.Message}",
+                    WebhookTxt = string.Empty,
+                    WebhookPdf = string.Empty
                 };
             }
         }
