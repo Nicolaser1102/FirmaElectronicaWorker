@@ -1,4 +1,5 @@
 ﻿using FirmaElectronicaWorker.Dto.Request;
+using FirmaElectronicaWorker.Dto.Response;
 using FirmaElectronicaWorker.Interfaces;
 using FirmaElectronicaWorker.Models;
 using Microsoft.Extensions.Options;
@@ -40,22 +41,29 @@ namespace FirmaElectronicaWorker.Services
 
             foreach (var doc in documentos)
             {
-                _logger.LogInformation("Enviando documento {OidNotificacion} ", doc.Id);
+                _logger.LogInformation("📄 Enviando documento {Id} a firmar...", doc.Id);
 
-                string res;
-                try
+                SignBoxSignResponse respuesta = await EnviarDocumentoAFirmarSignBox(doc);
+
+                if (respuesta.Status.Contains("200"))
                 {
-                    res = await EnviarDocumentoAFirmarSignBox(doc);
-                    Console.WriteLine(res);
+                    _logger.LogInformation("✅ Documento {Id} firmado correctamente.", doc.Id);
+
+                    await CambiarEstadoFirmado(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
 
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogWarning("Error al enviar documento a Firmar {Id} {Message}", doc.Id, ex.Message);
-                    res = ex.Message;
+                    _logger.LogWarning("❌ Documento {Id} no fue firmado. Detalle: {Detail}", doc.Id, respuesta.Detail);
+
+                    await CambiarEstadoError(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+
+
+
                 }
 
-            } 
+                
+            }
         }
 
         //Funciones para Execute()
@@ -203,7 +211,7 @@ namespace FirmaElectronicaWorker.Services
 
         //Enviara a firmar por SignBox los documentos pendientes para firmar
 
-        public async Task<string> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc)
+        public async Task<SignBoxSignResponse> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc)
         {
             try
             {
@@ -211,7 +219,19 @@ namespace FirmaElectronicaWorker.Services
                 //string rutaArchivo = @"C:\DocumentosPruebaFirmaElectronica\DocumentosFirmadosSignBox\20250625CR_CONTRATO_CREDITO01-1-3.pdf";
 
                 if (!File.Exists(rutaArchivo))
-                    return "ERROR: El archivo no existe";
+                {
+                    string errorMsg = $"El archivo no existe: {rutaArchivo}";
+                    _logger.LogWarning(errorMsg);
+
+                    return new SignBoxSignResponse
+                    {
+                        Result = false,
+                        Status = "ERROR",
+                        Detail = errorMsg,
+                        WebhookPdf = string.Empty,
+                        WebhookTxt = string.Empty
+                    };
+                }
 
                 using var client = _httpClientFactory.CreateClient();
 
@@ -243,8 +263,8 @@ namespace FirmaElectronicaWorker.Services
                 }
                 content.Add(new StringContent("test"), "reason");
                 content.Add(new StringContent("Guayaquil, Ecuador"), "location");
-                content.Add(new StringContent("1091583"), "username");
-                content.Add(new StringContent("RY3qn76H"), "password");
+                //content.Add(new StringContent("1091583"), "username");
+                //content.Add(new StringContent("RY3qn76H"), "password");
                 content.Add(new StringContent("Javier123_"), "pin");
                 content.Add(new StringContent("10,10,150,59"), "position");
                 content.Add(new StringContent("2"), "npage");
@@ -263,14 +283,167 @@ namespace FirmaElectronicaWorker.Services
                 var response = await client.PostAsync(url, content);
                 var result = await response.Content.ReadAsStringAsync();
 
-                return result;
+                _logger.LogInformation("📄 Respuesta de SignBox: {Response}", result);
+                _logger.LogInformation("📄 Respuesta de SignBox: {Response}", result);
+
+                var resultSignBox = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
+
+                if (resultSignBox == null)
+                {
+                    return new SignBoxSignResponse
+                    {
+                        Result = false,
+                        Status = "ERROR",
+                        Detail = "No se pudo deserializar la respuesta de SignBox.",
+                        WebhookPdf = string.Empty,
+                        WebhookTxt = string.Empty
+                    };
+                }
+
+                return resultSignBox;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al firmar documento.");
-                return $"ERROR: {ex.Message}";
+                _logger.LogError(ex, "❌ Error al firmar documento.");
+
+                return new SignBoxSignResponse
+                {
+                    Result = false,
+                    Status = "ERROR",
+                    Detail = $"Excepción al firmar: {ex.Message}",
+                    WebhookPdf = string.Empty,
+                    WebhookTxt = string.Empty
+                };
             }
         }
+
+        private async Task<ResponseGeneric> CambiarEstadoFirmado(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento )
+        {
+
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            var request = new RequestGeneric
+            {
+                Action = "credito-web/firmado-signbox",
+                Data = new
+                {
+                    Solicitud = solicitud,
+                    Lote = lote,
+                    CodigoDocumento = codigoDocumento,
+                    RespuestaApiSignBox = respuestaSignBox.Status,
+                    WebHookTxt = respuestaSignBox.WebhookTxt,
+                    WebHookPdf = respuestaSignBox.WebhookPdf,
+                    JsonRespuestaSignBox = JsonSerializer.Serialize(respuestaSignBox),
+                    
+                    
+                }
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
+            {
+                var response = await client.PostAsync(url, content);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("⚠️ Error al actualizar estado firmado. StatusCode: {Code}, Body: {Body}", response.StatusCode, body);
+                    return new ResponseGeneric
+                    {
+                        CodeReturn = -1,
+                        Message = $"Error al actualizar estado firmado: {body}",
+                        Result = null
+                    };
+                }
+
+                return new ResponseGeneric
+                {
+                    CodeReturn = 1,
+                    Message = "Estado firmado actualizado correctamente.",
+                    Result = body
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Excepción en CambiarEstadoFirmado");
+                return new ResponseGeneric
+                {
+                    CodeReturn = -1,
+                    Message = $"Excepción: {ex.Message}",
+                    Result = null
+                };
+            }
+        }
+
+
+        private async Task<ResponseGeneric> CambiarEstadoError(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
+        {
+
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            var request = new RequestGeneric
+            {
+                Action = "credito-web/error-firma-signbox",
+                Data = new
+                {
+                    Solicitud = solicitud,
+                    Lote = lote,
+                    CodigoDocumento = codigoDocumento,
+                    RespuestaApiSignBox = respuestaSignBox.Status,
+                    WebHookTxt = respuestaSignBox.WebhookTxt,
+                    WebHookPdf = respuestaSignBox.WebhookPdf,
+                    JsonRespuestaSignBox = JsonSerializer.Serialize(respuestaSignBox),
+
+
+                }
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
+            {
+                var response = await client.PostAsync(url, content);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("⚠️ Error al actualizar estado firmado. StatusCode: {Code}, Body: {Body}", response.StatusCode, body);
+                    return new ResponseGeneric
+                    {
+                        CodeReturn = -1,
+                        Message = $"Error al actualizar estado firmado: {body}",
+                        Result = null
+                    };
+                }
+
+                return new ResponseGeneric
+                {
+                    CodeReturn = 1,
+                    Message = "Estado firmado actualizado correctamente.",
+                    Result = body
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Excepción en CambiarEstadoFirmado");
+                return new ResponseGeneric
+                {
+                    CodeReturn = -1,
+                    Message = $"Excepción: {ex.Message}",
+                    Result = null
+                };
+            }
+        }
+
 
 
 

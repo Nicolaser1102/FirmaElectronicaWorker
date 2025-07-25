@@ -1,0 +1,10 @@
+
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/firmado-signbox','Crédito - Cambiar el estado de la firma de SignBox a firmado SignBox',1,0,'WebApi.spCambiarEstadoFirmadoSignBox',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
+
+
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/error-firma-signbox','Crédito - Cambiar el estado de la firma de SignBox a error',1,0,'WebApi.spCambiarEstadoFirmaErrorSignBox',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
