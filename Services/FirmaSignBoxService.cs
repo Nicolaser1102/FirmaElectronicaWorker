@@ -204,19 +204,19 @@ namespace FirmaElectronicaWorker.Services
         //Enviara a firmar por SignBox los documentos pendientes para firmar
 
         public async Task<string> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc)
-
         {
             try
             {
                 string rutaArchivo = doc.RutaArchivo;
+                //string rutaArchivo = @"C:\DocumentosPruebaFirmaElectronica\DocumentosFirmadosSignBox\20250625CR_CONTRATO_CREDITO01-1-3.pdf";
+
                 if (!File.Exists(rutaArchivo))
                     return "ERROR: El archivo no existe";
 
                 using var client = _httpClientFactory.CreateClient();
 
                 string url = "https://eclipsoft.dev/signbox/api/sign";
-                string token = await ObtenerTokenSignBoxAsync(); // Tu método para obtener token
-
+                string token = await ObtenerTokenSignBoxAsync();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                 var pdfStream = new FileStream(rutaArchivo, FileMode.Open, FileAccess.Read);
@@ -225,22 +225,41 @@ namespace FirmaElectronicaWorker.Services
 
                 var content = new MultipartFormDataContent();
 
-                // Agrega todos los campos tal como en Postman
+                string webhookId = $"sign_{Guid.NewGuid():N}";
                 content.Add(pdfContent, "fileIn", Path.GetFileName(rutaArchivo));
-                content.Add(new StringContent("pruebaGreensoft45"), "webhookId");
-                content.Add(new StringContent("iVBORw0KGgoAAAANSUhEUgAABgcAAAM3..."), "image"); // Usa el valor real base64
+                content.Add(new StringContent(webhookId), "webhookId");
+
+                var imagePath = @"C:\DocumentosPruebaFirmaElectronica\25\firmaPruebaIA.png";
+                if (File.Exists(imagePath))
+                {
+                    var imgBytes = await File.ReadAllBytesAsync(imagePath);
+                    var imageBase64 = Convert.ToBase64String(imgBytes);
+                    var imageContent = new StringContent(imageBase64, Encoding.UTF8, "text/plain");
+                    content.Add(imageContent, "image");
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Imagen no encontrada: {Path}", imagePath);
+                }
                 content.Add(new StringContent("test"), "reason");
                 content.Add(new StringContent("Guayaquil, Ecuador"), "location");
                 content.Add(new StringContent("1091583"), "username");
                 content.Add(new StringContent("RY3qn76H"), "password");
                 content.Add(new StringContent("Javier123_"), "pin");
                 content.Add(new StringContent("10,10,150,59"), "position");
-                content.Add(new StringContent("0"), "npage");
+                content.Add(new StringContent("2"), "npage");
 
-                var paragraphFormat = "[{\"font\":[\"Universal-Bold\",6],\"align\":\"right\",\"color\":\"#000000\"}]";
+                string paragraphFormat = @"[{
+          ""font"": [""Universal-Bold"", 6],
+          ""align"": ""right"",
+          ""data_format"": {
+            ""timezone"": ""America/Guayaquil"",
+            ""strtime"": ""%d/%m/%Y %H:%M:%S""
+          },
+          ""format"": [""Firmado por:"", ""$(CN)s"", ""ID: $(serialNumber)s""]
+        }]";
                 content.Add(new StringContent(paragraphFormat), "paragraphFormat");
 
-                // Envío
                 var response = await client.PostAsync(url, content);
                 var result = await response.Content.ReadAsStringAsync();
 
