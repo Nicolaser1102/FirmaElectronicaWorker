@@ -1,3 +1,9 @@
+USE INTERFACE 
+GO
+
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/obtener-docs-firmar-SignBox','Crédito - Obtener los documentos a firmar por SignBox',1,0,'WebApi.spObtenerDocumentosFirmarSignBox',1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
 
 INSERT INTO  WebApi.SeProcedimiento 
 VALUES ('credito-web/firmado-signbox','Crédito - Cambiar el estado de la firma de SignBox a firmado SignBox',1,0,'WebApi.spCambiarEstadoFirmadoSignBox',

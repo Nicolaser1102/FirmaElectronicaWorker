@@ -38,6 +38,8 @@ DECLARE
   WHERE [key] = 'JsonRespuestaSignBox'
 
 
+  
+
 			UPDATE [BancaVirtual2].[BancaVirtual].[DocumentosFirmaElectronica]
 			SET 
 			SignboxEstadoFirma = 'R',
@@ -55,9 +57,11 @@ DECLARE
 			if @@ERROR <> 0
 				begin
 					set @_CodeReturn= -1
-					set @_Message= 'ERROR AL ACTUALIZAR ESTADO A R '
+					set @_Message= 'ERROR AL ACTUALIZAR ESTADO A R'
 					RETURN
 				end
+
+				--SI ES EL QUINTO INTENTO LE ACTUALIZAMOS EL ESTADO A 'E'
 
 SET @_CodeReturn = 1
 

@@ -62,14 +62,14 @@ namespace FirmaElectronicaWorker.Services
 
                 }
 
-                
+
             }
         }
 
         //Funciones para Execute()
 
-            //Obtener token de API Orion y Sign Box
-            //Orion API
+        //Obtener token de API Orion y Sign Box
+        //Orion API
 
         private async Task<string> ObtenerTokenJwtAsync()
         {
@@ -263,8 +263,8 @@ namespace FirmaElectronicaWorker.Services
                 }
                 content.Add(new StringContent("test"), "reason");
                 content.Add(new StringContent("Guayaquil, Ecuador"), "location");
-                //content.Add(new StringContent("1091583"), "username");
-                //content.Add(new StringContent("RY3qn76H"), "password");
+                content.Add(new StringContent("1091583"), "username");
+                content.Add(new StringContent("RY3qn76H"), "password");
                 content.Add(new StringContent("Javier123_"), "pin");
                 content.Add(new StringContent("10,10,150,59"), "position");
                 content.Add(new StringContent("2"), "npage");
@@ -283,8 +283,6 @@ namespace FirmaElectronicaWorker.Services
                 var response = await client.PostAsync(url, content);
                 var result = await response.Content.ReadAsStringAsync();
 
-                _logger.LogInformation("📄 Respuesta de SignBox: {Response}", result);
-                _logger.LogInformation("📄 Respuesta de SignBox: {Response}", result);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -348,7 +346,7 @@ namespace FirmaElectronicaWorker.Services
             }
         }
 
-        private async Task<ResponseGeneric> CambiarEstadoFirmado(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento )
+        private async Task CambiarEstadoFirmado(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
         {
 
             string url = _urls.GenericExecuteOrionApi;
@@ -368,51 +366,25 @@ namespace FirmaElectronicaWorker.Services
                     WebHookTxt = respuestaSignBox.WebhookTxt,
                     WebHookPdf = respuestaSignBox.WebhookPdf,
                     JsonRespuestaSignBox = JsonSerializer.Serialize(respuestaSignBox),
-                    
-                    
+
+
                 }
             };
 
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            try
-            {
-                var response = await client.PostAsync(url, content);
-                var body = await response.Content.ReadAsStringAsync();
+        
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("⚠️ Error al actualizar estado firmado. StatusCode: {Code}, Body: {Body}", response.StatusCode, body);
-                    return new ResponseGeneric
-                    {
-                        CodeReturn = -1,
-                        Message = $"Error al actualizar estado firmado: {body}",
-                        Result = null
-                    };
-                }
+            return;
 
-                return new ResponseGeneric
-                {
-                    CodeReturn = 1,
-                    Message = "Estado firmado actualizado correctamente.",
-                    Result = body
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Excepción en CambiarEstadoFirmado");
-                return new ResponseGeneric
-                {
-                    CodeReturn = -1,
-                    Message = $"Excepción: {ex.Message}",
-                    Result = null
-                };
-            }
+    
         }
 
 
-        private async Task<ResponseGeneric> CambiarEstadoError(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
+        private async Task CambiarEstadoError(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
         {
 
             string url = _urls.GenericExecuteOrionApi;
@@ -440,39 +412,11 @@ namespace FirmaElectronicaWorker.Services
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            try
-            {
-                var response = await client.PostAsync(url, content);
-                var body = await response.Content.ReadAsStringAsync();
+            
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("⚠️ Error al actualizar estado firmado. StatusCode: {Code}, Body: {Body}", response.StatusCode, body);
-                    return new ResponseGeneric
-                    {
-                        CodeReturn = -1,
-                        Message = $"Error al actualizar estado firmado: {body}",
-                        Result = null
-                    };
-                }
-
-                return new ResponseGeneric
-                {
-                    CodeReturn = 1,
-                    Message = "Estado firmado actualizado correctamente.",
-                    Result = body
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Excepción en CambiarEstadoFirmado");
-                return new ResponseGeneric
-                {
-                    CodeReturn = -1,
-                    Message = $"Excepción: {ex.Message}",
-                    Result = null
-                };
-            }
+            
         }
 
 
