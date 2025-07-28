@@ -61,9 +61,18 @@ namespace FirmaElectronicaWorker.Services
             }
 
 
-            _logger.LogInformation("Firma OnBoarding finalizada.");
-
             var lotesEnviados = await ObtenerLotesEnviadosOnBoarding();
+
+            if (lotesEnviados.Any())
+            {
+                _logger.LogInformation("Lotes enviados a OnBoarding: {Count}", lotesEnviados.Count);
+                foreach (var lote in lotesEnviados)
+                {
+                    _logger.LogInformation("Lote Enviado: Solicitud {Solicitud}, Lote {Lote}, RequestId {RequestId}",
+                        lote.Solicitud, lote.Lote, lote.RequestId);
+                }
+            }
+            
 
 
         }
