@@ -3,13 +3,10 @@ using FirmaElectronicaWorker.Dto.Response;
 using FirmaElectronicaWorker.Interfaces;
 using FirmaElectronicaWorker.Models;
 using Microsoft.Extensions.Options;
-using System;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+
 
 namespace FirmaElectronicaWorker.Services
 {
@@ -46,20 +43,20 @@ namespace FirmaElectronicaWorker.Services
 
                     OnBoardingSignResponse respuesta = await EnviarDocumentoAFirmarOnBoarding(lote, solicitante);
 
-                //if (respuesta.Status.Contains("200"))
-                //{
-                //    _logger.LogInformation("✅ Lote {Lote} firmado correctamente.", lote.Lote);
+                if (respuesta.Status.Contains("200"))
+                {
+                    _logger.LogInformation("✅ Lote {Lote} firmado correctamente.", lote.Lote);
 
-                //    //await CambiarEstadoFirmado(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+                    await CambiarEstadoFirmadoOnBoarding(respuesta, lote.Solicitud, lote.Lote);
 
-                //}
-                //else
-                //{
-                //    _logger.LogWarning("❌  Lote: {Lote} no fue firmado.", lote.Lote);
+                }
+                else
+                {
+                    _logger.LogWarning("❌  Lote: {Lote} no fue firmado.", lote.Lote);
 
-                //    //await CambiarEstadoError(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+                    //await CambiarEstadoError(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
 
-                //}
+                }
 
 
             }
@@ -334,21 +331,19 @@ namespace FirmaElectronicaWorker.Services
                 var response = await client.PostAsync(url, content);
                 var responseBody = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
+                var result = JsonSerializer.Deserialize<OnBoardingSignResponse>(responseBody, new JsonSerializerOptions
                 {
-                    _logger.LogWarning("Falló la firma OnBoarding: {Status} - {Body}", response.StatusCode, responseBody);
-                    return new OnBoardingSignResponse
-                    {
-                        Status = "ERROR",
-                        Detail = responseBody
-                    };
-                }
+                    PropertyNameCaseInsensitive = true
+                });
 
-                _logger.LogInformation("Se envió la firma OnBoarding: {Status} - {Body}", response.StatusCode, responseBody);
+                _logger.LogInformation("✅ Se envió la firma OnBoarding: {Status} - {Body}", result?.Status, responseBody);
+
                 return new OnBoardingSignResponse
                 {
-                    Status = "OK",
-                    Detail = "Archivos enviados correctamente a OnBoarding"
+                    Status = result?.Status ?? "OK",
+                    Detail = result?.Detail ?? "Respuesta sin detalle",
+                    Url = result?.Url,
+                    RequestId = result?.RequestId
                 };
             }
             catch (Exception ex)
@@ -360,6 +355,42 @@ namespace FirmaElectronicaWorker.Services
                     Detail = $"Excepción: {ex.Message}"
                 };
             }
+        }
+
+
+        private async Task CambiarEstadoFirmadoOnBoarding(OnBoardingSignResponse respuestaOnBoarding, int solicitud, int lote)
+        {
+
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            var request = new RequestGeneric
+            {
+                Action = "credito-web/enviado-onboarding",
+                Data = new
+                {
+                    Solicitud = solicitud,
+                    Lote = lote,
+                    RequestId = respuestaOnBoarding.RequestId,
+                    Detail = respuestaOnBoarding.Detail,
+                    JsonRespuestaOnBoarding = JsonSerializer.Serialize(respuestaOnBoarding)
+
+
+                }
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+
+            return;
+
+
         }
 
 

@@ -49,14 +49,14 @@ namespace FirmaElectronicaWorker.Services
                 {
                     _logger.LogInformation("✅ Documento {Id} firmado correctamente.", doc.Id);
 
-                    await CambiarEstadoFirmado(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+                    await CambiarEstadoFirmadoSignBox(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
 
                 }
                 else
                 {
                     _logger.LogWarning("❌ Documento {Id} no fue firmado. Detalle: {Detail}", doc.Id, respuesta.Detail);
 
-                    await CambiarEstadoError(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+                    await CambiarEstadoErrorSignBox(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
 
 
 
@@ -346,7 +346,7 @@ namespace FirmaElectronicaWorker.Services
             }
         }
 
-        private async Task CambiarEstadoFirmado(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
+        private async Task CambiarEstadoFirmadoSignBox(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
         {
 
             string url = _urls.GenericExecuteOrionApi;
@@ -384,7 +384,7 @@ namespace FirmaElectronicaWorker.Services
         }
 
 
-        private async Task CambiarEstadoError(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
+        private async Task CambiarEstadoErrorSignBox(SignBoxSignResponse respuestaSignBox, int solicitud, int lote, string codigoDocumento)
         {
 
             string url = _urls.GenericExecuteOrionApi;

@@ -15,10 +15,11 @@ namespace FirmaElectronicaWorker.Dto.Response
         public string Status { get; set; }
 
         [JsonPropertyName("requestId")]
-        public string RequestId { get; set; }
+        public string ?RequestId { get; set; }
 
         [JsonPropertyName("url")]
-        public string Url { get; set; }
+        public string ?Url { get; set; }
+
 
         [JsonPropertyName("detail")]
         public string Detail { get; set; }
