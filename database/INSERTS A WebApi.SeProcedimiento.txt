@@ -36,6 +36,11 @@ VALUES ('credito-web/error-firma-onboarding','Crédito - Cambiar a estado Error 
 1,0,'WebApi.spCambiarEstadoFirmaErrorOnBoarding',
 1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
 
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/obtener-lotes-enviados-onboarding','Crédito - Obtener los lotes enviados por OnBoarding para revisar el estado de la firma',
+1,0,'WebApi.spObtenerLotesEnviadosOnBoarding',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
 ------------------------------------------------------------------------------------------------------
 BORRAR LO DE ABAJO 
 
