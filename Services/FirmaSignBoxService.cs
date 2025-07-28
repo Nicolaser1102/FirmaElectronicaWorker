@@ -235,7 +235,7 @@ namespace FirmaElectronicaWorker.Services
 
                 using var client = _httpClientFactory.CreateClient();
 
-                string url = "https://eclipsoft.dev/signbox/api/sign";
+                string url = _urls.SignDocumentUrlSignBox;
                 string token = await ObtenerTokenSignBoxAsync();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 

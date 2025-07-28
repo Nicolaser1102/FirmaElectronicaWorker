@@ -30,6 +30,13 @@ namespace FirmaElectronicaWorker.Models
 
     }
 
+    public class LoginResponseOnBoarding
+    {
+        [JsonPropertyName("id_token")]
+        public string Token { get; set; }
+
+    }
+
     public class GenericRequest
     {
         public string Action { get; set; } = string.Empty;
@@ -62,6 +69,12 @@ namespace FirmaElectronicaWorker.Models
         public string SignDocumentUrlSignBox { get; set; }
         public string LoginUserSignBox { get; set; }
         public string LoginPasswordSignBox { get; set; }
+
+        // OnBoarding URLs
+        public string LoginUrlOnBoarding { get; set; }
+        public string SignDocumentUrlOnBoarding { get; set; }
+        public string LoginUserOnBoarding { get; set; }
+        public string LoginPasswordOnBoarding { get; set; }
 
     }
 

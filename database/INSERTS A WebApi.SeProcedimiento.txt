@@ -16,8 +16,18 @@ VALUES ('credito-web/error-firma-signbox','Crédito - Cambiar el estado de la fi
 1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
 
 
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/obtener-lotes-firmar-OnBoarding','Crédito - Obtener la información de los lotes y solicitud que se debe intentar firmar por OnBoarding',1,0,'WebApi.spObtenerLotesParaFirmaOnBoarding',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
 
 
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/obtener-info-solicitante-credito','Crédito - Obtener la información del solicitante de crédito para parametrizar la petición OnBoarding',
+1,0,'WebApi.spObtenerInfoSolicitanteCredito',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
+------------------------------------------------------------------------------------------------------
+BORRAR LO DE ABAJO 
 
 
 --UPDATE [BancaVirtual].[DocumentosFirmaElectronica]
@@ -36,3 +46,5 @@ VALUES ('credito-web/error-firma-signbox','Crédito - Cambiar el estado de la fi
 --SELECT * FROM BancaVirtual.DocumentosFirmaElectronica
 --where ID = 133
 --
+
+

@@ -1,23 +1,371 @@
-﻿using FirmaElectronicaWorker.Interfaces;
+﻿using FirmaElectronicaWorker.Dto.Request;
+using FirmaElectronicaWorker.Dto.Response;
+using FirmaElectronicaWorker.Interfaces;
+using FirmaElectronicaWorker.Models;
+using Microsoft.Extensions.Options;
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection.Metadata;
+using System.Text;
+using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FirmaElectronicaWorker.Services
 {
     public class FirmaOnBoardingService : IBaseService
     {
         private readonly ILogger<FirmaOnBoardingService> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ExternalUrls _urls;
 
-        public FirmaOnBoardingService(ILogger<FirmaOnBoardingService> logger)
+        public FirmaOnBoardingService(ILogger<FirmaOnBoardingService> logger,
+                                      IHttpClientFactory httpClientFactory,
+                                      IOptions<ExternalUrls> urls
+            )
         {
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
+            _urls = urls.Value;
         }
 
         public async Task Execute()
         {
-            // Simulate asynchronous work to resolve CS1998
-            await Task.Delay(1);
+            var lotes = await ObtenerLotesPendientesFirmarOnBoarding();
+            if (!lotes.Any())
+            {
+                _logger.LogInformation("No hay documentos para firmar por SignBox pendientes. Finalizando ejecución.");
+                return;
+            }
 
-            // Log execution for debugging purposes
-            _logger.LogInformation("Execute method in FirmaOnBoardignService has been called. HOLA FIRMA ON BOARDING");
+            foreach (var lote in lotes) 
+                {
+                    _logger.LogInformation("📄 Enviando lote {Lote} a firmar...", lote.Lote);
+
+                    SolicitanteCreditoInfo solicitante = await ObtenerInfoSolicitanteCredito(lote.Solicitud);
+
+                    OnBoardingSignResponse respuesta = await EnviarDocumentoAFirmarOnBoarding(lote, solicitante);
+
+                //if (respuesta.Status.Contains("200"))
+                //{
+                //    _logger.LogInformation("✅ Lote {Lote} firmado correctamente.", lote.Lote);
+
+                //    //await CambiarEstadoFirmado(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+
+                //}
+                //else
+                //{
+                //    _logger.LogWarning("❌  Lote: {Lote} no fue firmado.", lote.Lote);
+
+                //    //await CambiarEstadoError(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
+
+                //}
+
+
+            }
+
+
+
         }
+
+        //Funciones para Execute()
+
+        //Obtener token de API Orion y OnBoarding
+        //Orion API
+
+        private async Task<string> ObtenerTokenJwtAsync()
+        {
+            string url = _urls.LoginUrlOrionApi;
+
+            var login = new LoginRequestGS
+            {
+                UserName = _urls.LoginUserOrionApi,
+                Password = _urls.LoginPasswordOrionApi
+            };
+
+            var json = JsonSerializer.Serialize(login);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Login fallido: {body}");
+            }
+
+            var result = JsonSerializer.Deserialize<LoginResponse>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null || string.IsNullOrEmpty(result.Token))
+            {
+                throw new ApplicationException($"Error de autenticación: {"Respuesta vacía"}");
+            }
+
+            return result.Token;
+        }
+
+        //API  OnBoarding
+
+        private async Task<string> ObtenerTokenOnBoardingAsync()
+        {
+
+
+            string url = _urls.LoginUrlOnBoarding;
+
+            var loginOnBoarding = new LoginRequestSignBox
+            {
+                username = _urls.LoginUserOnBoarding,
+                password = _urls.LoginPasswordOnBoarding
+            };
+
+            var json = JsonSerializer.Serialize(loginOnBoarding);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Login fallido: {body}");
+            }
+
+            var result = JsonSerializer.Deserialize<LoginResponseOnBoarding>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null || string.IsNullOrEmpty(result.Token))
+            {
+                throw new ApplicationException($"Error de autenticación: {"Respuesta vacía"}");
+            }
+
+            return result.Token;
+        }
+
+
+        // Obtener documentos pendientes de firma en SignBox
+
+
+        private async Task<List<LoteFirmaOnBoarding>> ObtenerLotesPendientesFirmarOnBoarding()
+        {
+
+
+            //!Aislar funcion inicio
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            //!Aislar funcion final
+
+            var request = new GenericRequest
+            {
+                Action = "credito-web/obtener-lotes-firmar-OnBoarding",
+                Data = ""
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(url, content);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Error HTTP: {response.StatusCode} - {response.ReasonPhrase}");
+            }
+
+            var result = JsonSerializer.Deserialize<GenericResponse<List<LoteFirmaOnBoarding>>>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null)
+            {
+                _logger.LogWarning("Respuesta vacía del backend al obtener lotes a firmar.");
+                return new List<LoteFirmaOnBoarding>();
+            }
+
+            if (result.CodeReturn != 1)
+            {
+                _logger.LogWarning("Backend respondió sin éxito: {Message}", result.Message);
+                return new List<LoteFirmaOnBoarding>();
+            }
+
+            if (result.Result == null )
+            {
+                _logger.LogInformation("No hay lotes Pendientes por firmar por OnBoarding.");
+                return new List<LoteFirmaOnBoarding>();
+            }
+
+
+
+            return result.Result;
+
+        }
+
+        //Obtener información del cliente para parametrizar lote de documentos a firmar
+
+        private async Task<SolicitanteCreditoInfo> ObtenerInfoSolicitanteCredito(int soliciutd)
+        {
+
+
+            //!Aislar funcion inicio
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            //!Aislar funcion final
+
+            var request = new GenericRequest
+            {
+                Action = "credito-web/obtener-info-solicitante-credito",
+                Data  = new
+                {
+                    Solicitud = soliciutd
+                }
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(url, content);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Error HTTP: {response.StatusCode} - {response.ReasonPhrase}");
+            }
+
+            var result = JsonSerializer.Deserialize<GenericResponse<SolicitanteCreditoInfo>>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null)
+            {
+                _logger.LogWarning("Respuesta vacía del backend al obtener lotes a firmar.");
+                return new SolicitanteCreditoInfo ();
+            }
+
+            if (result.CodeReturn != 1)
+            {
+                _logger.LogWarning("Backend respondió sin éxito: {Message}", result.Message);
+                return new SolicitanteCreditoInfo();
+            }
+
+            if (result.Result == null)
+            {
+                _logger.LogInformation("No hay lotes Pendientes por firmar por OnBoarding.");
+                return new SolicitanteCreditoInfo();
+            }
+
+            _logger.LogInformation("JSON recibido del backend: {Json}", body);
+
+
+            return result.Result;
+        }
+
+
+        //Enviara a firmar por SignBox los documentos pendientes para firmar
+
+        public async Task<OnBoardingSignResponse> EnviarDocumentoAFirmarOnBoarding(
+                                                    LoteFirmaOnBoarding lote,
+                                                    SolicitanteCreditoInfo solicitante)
+        {
+            try
+            {
+                using var client = _httpClientFactory.CreateClient();
+                using var content = new MultipartFormDataContent();
+
+                foreach (var doc in lote.Documentos)
+                {
+                    var urlPdf = doc.SignBoxWeebhookPdf;
+
+                    using var httpClient = new HttpClient();
+                    var pdfBytes = await httpClient.GetByteArrayAsync(urlPdf);
+
+                    if (pdfBytes == null || pdfBytes.Length == 0)
+                    {
+                        string errorMsg = $"No se pudo descargar el archivo PDF desde: {urlPdf}";
+                        _logger.LogWarning(errorMsg);
+                        return new OnBoardingSignResponse
+                        {
+                            Status = "ERROR",
+                            Detail = errorMsg,
+                        };
+                    }
+
+                    var fileName = $"{doc.CodigoDocumento}_Sol{lote.Solicitud}_{solicitante.Nui}.pdf";
+                    var byteArrayContent = new ByteArrayContent(pdfBytes);
+                    byteArrayContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+
+                    // 👇 Este nombre de campo ("archivos") depende de cómo la API espera los archivos
+                    content.Add(byteArrayContent, "file", fileName);
+                }
+
+                content.Add(new StringContent(solicitante.Nui),"nui");
+                content.Add(new StringContent(solicitante.GivenName), "givenName");
+                content.Add(new StringContent(solicitante.SecondName), "secondName");
+                content.Add(new StringContent(solicitante.Surname1), "surname1");
+                content.Add(new StringContent(solicitante.Surname2), "surname2");
+                content.Add(new StringContent(solicitante.Province), "province");
+                content.Add(new StringContent(solicitante.City), "city");
+                content.Add(new StringContent(solicitante.Country), "country");
+                content.Add(new StringContent(solicitante.Address), "address");
+                content.Add(new StringContent(solicitante.Email), "email");
+                content.Add(new StringContent(solicitante.PhoneNumber), "phoneNumber");
+                content.Add(new StringContent(solicitante.Reason), "reason");
+
+                string url = _urls.SignDocumentUrlOnBoarding;
+                string token = await ObtenerTokenOnBoardingAsync();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+
+                // Aquí haces el POST a la API de OnBoarding
+                var response = await client.PostAsync(url, content);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Falló la firma OnBoarding: {Status} - {Body}", response.StatusCode, responseBody);
+                    return new OnBoardingSignResponse
+                    {
+                        Status = "ERROR",
+                        Detail = responseBody
+                    };
+                }
+
+                _logger.LogInformation("Se envió la firma OnBoarding: {Status} - {Body}", response.StatusCode, responseBody);
+                return new OnBoardingSignResponse
+                {
+                    Status = "OK",
+                    Detail = "Archivos enviados correctamente a OnBoarding"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Excepción al enviar documentos a OnBoarding");
+                return new OnBoardingSignResponse
+                {
+                    Status = "ERROR",
+                    Detail = $"Excepción: {ex.Message}"
+                };
+            }
+        }
+
+
+
+
+
+        private static readonly HttpClient client = new HttpClient();
     }
 }
