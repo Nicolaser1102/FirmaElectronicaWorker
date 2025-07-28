@@ -29,13 +29,10 @@ namespace FirmaElectronicaWorker.Services
         public async Task Execute()
         {
             var lotes = await ObtenerLotesPendientesFirmarOnBoarding();
-            if (!lotes.Any())
-            {
-                _logger.LogInformation("No hay documentos para firmar por SignBox pendientes. Finalizando ejecución.");
-                return;
-            }
 
-            foreach (var lote in lotes) 
+            if (lotes.Any())
+            {
+                foreach (var lote in lotes)
                 {
                     _logger.LogInformation("📄 Enviando lote {Lote} a firmar...", lote.Lote);
 
@@ -43,24 +40,30 @@ namespace FirmaElectronicaWorker.Services
 
                     OnBoardingSignResponse respuesta = await EnviarDocumentoAFirmarOnBoarding(lote, solicitante);
 
-                if (respuesta.Status.Contains("200"))
-                {
-                    _logger.LogInformation("✅ Lote {Lote} firmado correctamente.", lote.Lote);
+                    if (respuesta.Status.Contains("200"))
+                    {
+                        _logger.LogInformation("✅ Lote {Lote} firmado correctamente.", lote.Lote);
 
-                    await CambiarEstadoFirmadoOnBoarding(respuesta, lote.Solicitud, lote.Lote);
+                        await CambiarEstadoFirmadoOnBoarding(respuesta, lote.Solicitud, lote.Lote);
+
+                    }
+                    else
+                    {
+                        _logger.LogWarning("❌  Lote: {Lote} no fue firmado.", lote.Lote);
+
+                        await CambiarEstadoErrorOnBoarding(respuesta, lote.Solicitud, lote.Lote);
+
+                    }
+
 
                 }
-                else
-                {
-                    _logger.LogWarning("❌  Lote: {Lote} no fue firmado.", lote.Lote);
-
-                    //await CambiarEstadoError(respuesta, doc.Solicitud, doc.Lote, doc.CodigoDocumento);
-
-                }
-
 
             }
 
+
+            _logger.LogInformation("Firma OnBoarding finalizada.");
+
+            var lotesEnviados = await ObtenerLotesEnviadosOnBoarding();
 
 
         }
@@ -393,7 +396,96 @@ namespace FirmaElectronicaWorker.Services
 
         }
 
+        private async Task CambiarEstadoErrorOnBoarding(OnBoardingSignResponse respuestaOnBoarding, int solicitud, int lote)
+        {
 
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            var request = new RequestGeneric
+            {
+                Action = "credito-web/error-firma-onboarding",
+                Data = new
+                {
+                    Solicitud = solicitud,
+                    Lote = lote,
+                    Detail = respuestaOnBoarding.Detail,
+                    JsonRespuestaOnBoarding = JsonSerializer.Serialize(respuestaOnBoarding)
+
+                }
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+
+
+        }
+
+
+        private async Task<List<LoteEnviado>> ObtenerLotesEnviadosOnBoarding()
+        {
+
+
+            //!Aislar funcion inicio
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            //!Aislar funcion final
+
+            var request = new GenericRequest
+            {
+                Action = "credito-web/obtener-lotes-enviados-onboarding",
+                Data = ""
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(url, content);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Error HTTP: {response.StatusCode} - {response.ReasonPhrase}");
+            }
+
+            var result = JsonSerializer.Deserialize<GenericResponse<List<LoteEnviado>>>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null)
+            {
+                _logger.LogWarning("Respuesta vacía del backend al obtener lotes a firmar.");
+                return new List<LoteEnviado>();
+            }
+
+            if (result.CodeReturn != 1)
+            {
+                _logger.LogWarning("Backend respondió sin éxito: {Message}", result.Message);
+                return new List<LoteEnviado>();
+            }
+
+            if (result.Result == null)
+            {
+                _logger.LogInformation("No hay lotes Pendientes por firmar por OnBoarding.");
+                return new List<LoteEnviado>();
+            }
+
+            _logger.LogInformation("JSON recibido del backend: {Json}", body);
+
+            return result.Result;
+
+        }
 
 
 
