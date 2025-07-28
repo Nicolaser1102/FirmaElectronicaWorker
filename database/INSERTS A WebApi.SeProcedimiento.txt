@@ -14,3 +14,25 @@ VALUES ('credito-web/firmado-signbox','Crédito - Cambiar el estado de la firma 
 INSERT INTO  WebApi.SeProcedimiento 
 VALUES ('credito-web/error-firma-signbox','Crédito - Cambiar el estado de la firma de SignBox a error',1,0,'WebApi.spCambiarEstadoFirmaErrorSignBox',
 1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
+
+
+
+
+
+--UPDATE [BancaVirtual].[DocumentosFirmaElectronica]
+--SET 
+--SignBoxWeebhookTxt = null,
+--SignBoxWeebhookPdf = null,
+--SignBoxEstadoFirma = 'I',
+--SignboxIntentosFirma = 0,
+--SignBoxModificaUsuario = null,
+--SignBoxModificaFecha = null,
+--SignBoxRespuestaApi = null,
+--SignBoxRespuestaJson = null
+
+--WHERE ID = 133
+
+--SELECT * FROM BancaVirtual.DocumentosFirmaElectronica
+--where ID = 133
+--

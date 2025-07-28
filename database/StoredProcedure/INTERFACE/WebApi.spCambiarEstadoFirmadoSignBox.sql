@@ -57,7 +57,12 @@ DECLARE
 			SignBoxRespuestaApi = @LS_SB_RESPUESTA_API,
 			SignBoxRespuestaJson = @LS_SB_RESPUESTA_JSON,
 			SignBoxModificaUsuario = @_UserName,
-			SignBoxModificaFecha = dbo.FechaSistema()
+			SignBoxModificaFecha = dbo.FechaSistema(),
+
+
+			OnBoardingEstadoFirma = 'I',
+			OnBoardingModificaUsuario = 'ADMIN',
+			OnBoardingModificaFecha = dbo.FechaSistema()
 
 			where 
 				CodigoDocumento = @LS_CODIGO_DOCUMENTO  AND
@@ -67,7 +72,7 @@ DECLARE
 			if @@ERROR <> 0
 				begin
 					set @_CodeReturn= -1
-					set @_Message= 'ERROR AL ACTUALIZAR ESTADO E EN CRM_NOTIFICACIONES_SMS'
+					set @_Message= 'ERROR AL ACTUALIZAR ESTADO F EN FIRMA ELECTRONICA SIGNBOX'
 					RETURN
 				end
 
