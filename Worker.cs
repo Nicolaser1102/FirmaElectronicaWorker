@@ -11,8 +11,9 @@ namespace FirmaElectronicaWorker
         public Worker(ILogger<Worker> logger,
             AppSettingService appSettings,
             FirmaSignBoxService firmaSignBoxService,
-            FirmaOnBoardingService firmaOnBoardingService
-     
+            FirmaOnBoardingService firmaOnBoardingService,
+            GuardarDocumentosFirmadosService guardarDocumentosFirmadosService
+
             )
         {
             _logger = logger;
@@ -21,7 +22,8 @@ namespace FirmaElectronicaWorker
             {
                 new ServicesModel(firmaSignBoxService, "FirmaSignBox", appSettings.Service.FirmaSignBox ),
                 new ServicesModel(firmaOnBoardingService, "FirmaOnBoarding", appSettings.Service.FirmaOnBoarding),
-                
+                new ServicesModel(guardarDocumentosFirmadosService, "GuardarDocumentosFirmados", appSettings.Service.GuardarDocumentosFirmados)
+
             };
         }
 

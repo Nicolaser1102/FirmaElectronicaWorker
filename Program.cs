@@ -35,6 +35,7 @@ public class Program
         services.AddSingleton<AppSettingService>();
         services.AddSingleton<FirmaSignBoxService>();
         services.AddSingleton<FirmaOnBoardingService>();
+        services.AddSingleton<GuardarDocumentosFirmadosService>();
 
         var configuration = new ConfigurationBuilder()
                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)

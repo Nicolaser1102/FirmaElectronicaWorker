@@ -42,10 +42,16 @@ VALUES ('credito-web/obtener-lotes-enviados-onboarding','Crédito - Obtener los 
 1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
 
 
-INSERT INTO  WebApi.SeProcedimiento 
-VALUES ('credito-web/cambio-estado-firma-onboarding','Crédito - Cambiar el estado de la firma según la ruta que se encuentra el usuario en el OnBoarding',
-1,0,'WebApi.spCambiarEstadoFirmaOnBoarding',
+ INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/obtener-lotes-guardar-documentos','Crédito - Obtener los lotes para guardar los URLs donde está cada documento firmado por el OnBoarding',
+1,0,'WebApi.spObtenerLotesParaGuardarDocumentosFirmados',
 1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/guardar-documentos-firmados-por-lote','Crédito - Guardar los documentos firmados según su solicitud y código de documento según la información del lote',
+1,0,'WebApi.spGuardarDocumentosFirmadosPorLote',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
 
 ------------------------------------------------------------------------------------------------------
 BORRAR LO DE ABAJO 

@@ -76,6 +76,7 @@ namespace FirmaElectronicaWorker.Models
         public string LoginUserOnBoarding { get; set; }
         public string LoginPasswordOnBoarding { get; set; }
         public string CheckStatusUrlOnBoarding { get; set; }
+        public string ExtraerDocumentosFirmadosUrlOnBoarding { get; set; }
 
     }
 

@@ -23,6 +23,8 @@ namespace FirmaElectronicaWorker.Models.Settings
         [JsonPropertyName("FirmaOnBoarding")]
         public BaseServiceSetting FirmaOnBoarding { get; set; } = new BaseServiceSetting();
 
+        [JsonPropertyName("GuardarDocumentosFirmados")]
+        public BaseServiceSetting GuardarDocumentosFirmados { get; set; } = new BaseServiceSetting();
 
     }
 
