@@ -44,7 +44,7 @@ namespace FirmaElectronicaWorker.Services
                     {
                         _logger.LogInformation("✅ Lote {Lote} firmado correctamente.", lote.Lote);
 
-                        await CambiarEstadoFirmadoOnBoarding(respuesta, lote.Solicitud, lote.Lote);
+                        await CambiarEstadoEnviadoOnBoarding(respuesta, lote.Solicitud, lote.Lote);
 
                     }
                     else
@@ -65,11 +65,15 @@ namespace FirmaElectronicaWorker.Services
 
             if (lotesEnviados.Any())
             {
-                _logger.LogInformation("Lotes enviados a OnBoarding: {Count}", lotesEnviados.Count);
+               
                 foreach (var lote in lotesEnviados)
                 {
-                    _logger.LogInformation("Lote Enviado: Solicitud {Solicitud}, Lote {Lote}, RequestId {RequestId}",
-                        lote.Solicitud, lote.Lote, lote.RequestId);
+                  var statusLote = await CheckStatusFirmaOnBoarding(lote);
+
+                    if (statusLote != null)
+                    {
+                       await CambiarEstadoFirmaOnBoarding(statusLote, lote.Solicitud, lote.Lote);
+                    }
                 }
             }
             
@@ -370,7 +374,7 @@ namespace FirmaElectronicaWorker.Services
         }
 
 
-        private async Task CambiarEstadoFirmadoOnBoarding(OnBoardingSignResponse respuestaOnBoarding, int solicitud, int lote)
+        private async Task CambiarEstadoEnviadoOnBoarding(OnBoardingSignResponse respuestaOnBoarding, int solicitud, int lote)
         {
 
             string url = _urls.GenericExecuteOrionApi;
@@ -495,6 +499,94 @@ namespace FirmaElectronicaWorker.Services
             return result.Result;
 
         }
+
+
+        public async Task<CheckStatusResponse?> CheckStatusFirmaOnBoarding(LoteEnviado lote)
+        {
+            try
+            {
+                string baseUrl = _urls.CheckStatusUrlOnBoarding.TrimEnd('/');
+                string fullUrl = $"{baseUrl}/{lote.RequestId}";
+
+                string token = await ObtenerTokenOnBoardingAsync();
+
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Get, fullUrl);
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                var response = await client.SendAsync(requestMessage);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Error al consultar estado OnBoarding: {StatusCode} - {ResponseBody}",
+                                     response.StatusCode, responseBody);
+                    return null;
+                }
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var result = JsonSerializer.Deserialize<CheckStatusResponse>(responseBody, options);
+
+                if (result == null)
+                {
+                    _logger.LogWarning("Respuesta nula al deserializar CheckStatusResponse.");
+                    return null;
+                }
+
+                return new CheckStatusResponse
+                {
+                    Result = result.Result,
+                    State = result.State,
+                    Route = result.Route,
+                    Detail = result.Detail
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Excepción en CheckStatusFirmaOnBoarding");
+                return null;
+            }
+        }
+
+        private async Task CambiarEstadoFirmaOnBoarding(CheckStatusResponse respuestaStatusFirma, int solicitud, int lote)
+        {
+
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            var request = new RequestGeneric
+            {
+                Action = "credito-web/cambio-estado-firma-onboarding",
+                Data = new
+                {
+                    Solicitud = solicitud,
+                    Lote = lote,
+                    Result = respuestaStatusFirma.Result,
+                    State = respuestaStatusFirma.State,
+                    Detail = respuestaStatusFirma.Detail,
+                    JsonRespuestaOnBoarding = JsonSerializer.Serialize(respuestaStatusFirma)
+
+
+                }
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+
+            return;
+
+
+        }
+
 
 
 

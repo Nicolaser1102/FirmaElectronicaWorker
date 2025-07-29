@@ -41,6 +41,12 @@ VALUES ('credito-web/obtener-lotes-enviados-onboarding','Crédito - Obtener los 
 1,0,'WebApi.spObtenerLotesEnviadosOnBoarding',
 1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
 
+
+INSERT INTO  WebApi.SeProcedimiento 
+VALUES ('credito-web/cambio-estado-firma-onboarding','Crédito - Cambiar el estado de la firma según la ruta que se encuentra el usuario en el OnBoarding',
+1,0,'WebApi.spCambiarEstadoFirmaOnBoarding',
+1,1,0,0,'ADMIN', GETDATE(),NULL,NULL)
+
 ------------------------------------------------------------------------------------------------------
 BORRAR LO DE ABAJO 
 
