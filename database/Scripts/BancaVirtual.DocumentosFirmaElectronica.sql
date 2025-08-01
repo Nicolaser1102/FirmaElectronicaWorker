@@ -1,10 +1,10 @@
 USE BancaVirtual2;
 GO
 
--- Crear la tabla
+-- Crear la tabla con ID autoincremental
 CREATE TABLE BancaVirtual.DocumentosFirmaElectronica
 (
-    ID INT NOT NULL PRIMARY KEY, -- Clave primaria
+    ID INT NOT NULL IDENTITY(1,1) PRIMARY KEY, -- Clave primaria autoincremental
     Solicitud INT NOT NULL,
     Lote INT NOT NULL,
     CodigoDocumento VARCHAR(20) NOT NULL,
@@ -14,6 +14,7 @@ CREATE TABLE BancaVirtual.DocumentosFirmaElectronica
     SignBoxRespuestaJson VARCHAR(MAX),
     SignboxEstadoFirma CHAR(1) NOT NULL,
     SignboxIntentosFirma INT NOT NULL DEFAULT 0,
+	SignBoxProcesandoFirma BIT NOT NULL DEFAULT 0,
     SignBoxCreacionUsuario VARCHAR(20) NOT NULL,
     SignBoxCreacionFecha DATETIME NOT NULL,
     SignBoxModificaUsuario VARCHAR(20),
@@ -24,12 +25,13 @@ CREATE TABLE BancaVirtual.DocumentosFirmaElectronica
     OnBoardingRespuestaJson VARCHAR(MAX),
     OnBoardingEstadoFirma CHAR(1),
     OnBoardingIntentosFirma INT NOT NULL DEFAULT 0,
+	OnBoardingProcesandoFirma BIT NOT NULL DEFAULT 0,
     OnBoardingModificaUsuario VARCHAR(20),
     OnBoardingModificaFecha DATETIME
 );
 GO
 
--- Índice para búsquedas por OnBoardingEstadoFirma y estado de firma (útil para agregaciones y filtros masivos)
+-- Índice para búsquedas por OnBoardingEstadoFirma y estado de firma
 CREATE NONCLUSTERED INDEX IX_DocFirma_EstadoFirma
 ON BancaVirtual.DocumentosFirmaElectronica (
     OnBoardingEstadoFirma,
@@ -39,7 +41,7 @@ ON BancaVirtual.DocumentosFirmaElectronica (
 );
 GO
 
--- Índice para búsquedas rápidas por CódigoDocumento + Solicitud + Lote (muy común en updates/select específicos)
+-- Índice para búsquedas rápidas por CódigoDocumento + Solicitud + Lote
 CREATE NONCLUSTERED INDEX IX_DocFirma_CodigoSolicitudLote
 ON BancaVirtual.DocumentosFirmaElectronica (
     CodigoDocumento,
@@ -48,7 +50,7 @@ ON BancaVirtual.DocumentosFirmaElectronica (
 );
 GO
 
--- Índice auxiliar por Solicitud + Lote (para agrupaciones frecuentes)
+-- Índice auxiliar por Solicitud + Lote
 CREATE NONCLUSTERED INDEX IX_DocFirma_SolicitudLote
 ON BancaVirtual.DocumentosFirmaElectronica (
     Solicitud,

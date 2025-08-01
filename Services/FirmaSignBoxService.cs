@@ -245,7 +245,7 @@ namespace FirmaElectronicaWorker.Services
 
                 var content = new MultipartFormDataContent();
 
-                string webhookId = $"sign_{Guid.NewGuid():N}";
+                string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}";
                 content.Add(pdfContent, "fileIn", Path.GetFileName(rutaArchivo));
                 content.Add(new StringContent(webhookId), "webhookId");
 

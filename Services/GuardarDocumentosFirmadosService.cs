@@ -1,15 +1,10 @@
 ﻿using FirmaElectronicaWorker.Dto.Response;
 using FirmaElectronicaWorker.Interfaces;
 using FirmaElectronicaWorker.Models;
-using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
+using Microsoft.Extensions.Options; 
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace FirmaElectronicaWorker.Services
 {
@@ -33,7 +28,14 @@ namespace FirmaElectronicaWorker.Services
         {
             var lotes = await ObtenerLotesParaGuardarDocumentosFirmados();
 
-            foreach (var lote in lotes) { 
+            if (lotes == null || !lotes.Any())
+            {
+                _logger.LogInformation("No se encontraron lotes para guardar documentos firmados.");
+                return;
+            }
+
+            foreach (var lote in lotes)
+            {
                 await GuardarDocumentosFirmadosPorLote(lote);
             }
         }
@@ -207,8 +209,7 @@ namespace FirmaElectronicaWorker.Services
 
         private async Task<GetDocumentsSignedResponse> ObtenerRutasDocumentosFirmadosAsync(LoteEnviado lote)
         {
-            try
-            {
+            
                 string baseUrl = _urls.ExtraerDocumentosFirmadosUrlOnBoarding.TrimEnd('/');
                 string fullUrl = $"{baseUrl}/?requestId={lote.RequestId}";
 
@@ -239,12 +240,8 @@ namespace FirmaElectronicaWorker.Services
                 }
 
                 return new GetDocumentsSignedResponse { RutasFirmadas = rutas };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Excepción al obtener rutas firmadas para el lote {Lote}", lote.Lote);
-                return new GetDocumentsSignedResponse { RutasFirmadas = new List<string>() };
-            }
+            
+            
         }
 
         private async Task<ResponseGeneric> GuardarDocumentosFirmadosEnBdAsync(LoteEnviado lote, List<string> rutasFirmadas)

@@ -24,7 +24,8 @@ SET @Result = (
         FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica
         WHERE OnBoardingEstadoFirma IN ('F') AND
 		OnBoardingRespuestaDetail = 'Solicitud finalizada' AND 
-		OnBoardingRutaDocumento IS NULL
+		OnBoardingRutaDocumento IS NULL AND
+		OnBoardingProcesandoFirma = 0
         GROUP BY Solicitud, Lote, OnBoardingRequestId
         HAVING COUNT(*) = SUM(CASE WHEN OnBoardingEstadoFirma = 'F' THEN 1 ELSE 0 END)
     FOR JSON PATH

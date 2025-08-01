@@ -77,6 +77,15 @@ BEGIN
     ELSE
     BEGIN
 
+	    UPDATE [BancaVirtual2].[BancaVirtual].[DocumentosFirmaElectronica]
+        SET 
+            OnBoardingProcesandoFirma = 1
+        WHERE 
+            Solicitud = @LI_SOLICITUD AND
+            Lote = @LI_LOTE
+
+
+
         UPDATE [BancaVirtual2].[BancaVirtual].[DocumentosFirmaElectronica]
         SET 
             OnBoardingEstadoFirma = 'F',
@@ -88,6 +97,13 @@ BEGIN
             Solicitud = @LI_SOLICITUD AND
             Lote = @LI_LOTE
 
+			--AUMENTAR SP PARA EL CAMBIO DE ESTADO DE LA SOLICITUD DE CREDITO Y QUE APAREZCA EN LA
+			--BANDEJA DE ENTRADA DE ORION
+
+
+
+			---------
+
         IF @@ERROR <> 0
         BEGIN
             SET @_CodeReturn = -1
@@ -95,6 +111,13 @@ BEGIN
             RETURN
         END
     END
+
+	 UPDATE [BancaVirtual2].[BancaVirtual].[DocumentosFirmaElectronica]
+        SET 
+            OnBoardingProcesandoFirma = 0
+        WHERE 
+            Solicitud = @LI_SOLICITUD AND
+            Lote = @LI_LOTE
 
     SET @_CodeReturn = 1
     SET @_Message = 'Estado actualizado correctamente'
