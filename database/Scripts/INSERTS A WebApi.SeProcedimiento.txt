@@ -104,5 +104,12 @@ BEGIN
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
     (64, 'credito-web/obtener-docs-firmar-SignBox', 'Crédito - Obtener los documentos a firmar por SignBox', 1, 0, 'WebApi.spObtenerDocumentosFirmarSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-29 13:14:23.673')
+
+
+    INSERT INTO WebApi.SeProcedimiento 
+    (Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
+    VALUES 
+    ('parametros/obtener-info-firm-coop', 'Parametros - Obtener la información del firmante de la cooperativa para firma SignBox', 1, 0,
+	'WebApi.spObtenerInfoFirmanteCoop', 1, 1, 0, 0, 'ADMIN', '2025-07-29 13:14:23.673')
 END
 

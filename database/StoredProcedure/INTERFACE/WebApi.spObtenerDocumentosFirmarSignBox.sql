@@ -7,14 +7,6 @@ CREATE or alter   procedure [WebApi].[spObtenerDocumentosFirmarSignBox]
 @Result      varchar(MAX) output
 as
 
-		--Convertir a INT
-		---Solicitud = CAST(dog_referencia AS INT),
-
-		--SET @_Message = 'No hay documentos para Procesar' 
-		--SET @_CodeReturn = 1
-		--SET @Result = '{}'
-		--RETURN 
-
 
 
 

@@ -1,0 +1,6 @@
+1. Subir versión de Difare Banca Virtual front end (difare) con sus sps también
+2. Subir versión de AppGenericos (BackEnd Banca Virtual)
+3. Subir versión de SignDocumentService
+4. Subir versión de FirmaElectronicaWorker, tener en cuenta de ejecutar todos los scripts y procedimientos almacenados que está en la carpeta .\database
+
+5.Se va a crear una ventana de mantenimiento para las credenciales de las oficiales de crédito para la firma de SignBox 

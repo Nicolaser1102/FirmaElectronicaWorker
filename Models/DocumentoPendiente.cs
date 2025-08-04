@@ -22,6 +22,8 @@ namespace FirmaElectronicaWorker.Models
         [JsonPropertyName("rutaArchivo")]
         public string RutaArchivo { get; set; }
 
+
+
     }
 }
 

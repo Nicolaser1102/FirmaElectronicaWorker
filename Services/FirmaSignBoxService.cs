@@ -3,10 +3,11 @@ using FirmaElectronicaWorker.Dto.Response;
 using FirmaElectronicaWorker.Interfaces;
 using FirmaElectronicaWorker.Models;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualBasic;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FirmaElectronicaWorker.Services
 {
@@ -39,11 +40,20 @@ namespace FirmaElectronicaWorker.Services
                 return;
             }
 
+            //Aqui se tiene que obtener la informacion del firmante por parte de la cooperativa 
+
+            var infoFirmanteCoop = await ObtenerFirmanteCooperativaInfo();
+            if (infoFirmanteCoop == null)
+            {
+                _logger.LogWarning("No se pudo obtener la información del firmante de la cooperativa. Verifique la configuración.");
+                return;
+            }
+
             foreach (var doc in documentos)
             {
                 _logger.LogInformation("📄 Enviando documento {Id} a firmar...", doc.Id);
 
-                SignBoxSignResponse respuesta = await EnviarDocumentoAFirmarSignBox(doc);
+                SignBoxSignResponse respuesta = await EnviarDocumentoAFirmarSignBox(doc, infoFirmanteCoop);
 
                 if (respuesta.Status.Contains("200"))
                 {
@@ -146,6 +156,69 @@ namespace FirmaElectronicaWorker.Services
         }
 
 
+        //Obtener información del firmante de la cooperativa
+
+
+        private async Task<InfoFirmanteCoop> ObtenerFirmanteCooperativaInfo()
+        {
+
+
+            //!Aislar funcion inicio
+            string url = _urls.GenericExecuteOrionApi;
+            string tokenJwt = await ObtenerTokenJwtAsync();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJwt);
+
+            //!Aislar funcion final
+
+            var request = new GenericRequest
+            {
+                Action = "parametros/obtener-info-firm-coop",
+                Data = ""
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(url, content);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApplicationException($"Error HTTP: {response.StatusCode} - {response.ReasonPhrase}");
+            }
+
+            var result = JsonSerializer.Deserialize<GenericResponse<InfoFirmanteCoop>>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null)
+            {
+                _logger.LogWarning("Respuesta vacía del backend al obtener notificaciones.");
+                return new InfoFirmanteCoop();
+            }
+
+            if (result.CodeReturn != 1)
+            {
+                _logger.LogWarning("Backend respondió sin éxito: {Message}", result.Message);
+                return new InfoFirmanteCoop();
+            }
+
+            if (result.Result == null)
+            {
+                _logger.LogInformation("No hay información del firmante de la cooperativa o se encuentra en estado 'B'");
+                return new InfoFirmanteCoop();
+            }
+
+
+            return result.Result;
+
+        }
+
+
+
         // Obtener documentos pendientes de firma en SignBox
 
         private async Task<List<DocumentoPendiente>> ObtenerDocumentosPendientesFirmarSignbox()
@@ -211,12 +284,11 @@ namespace FirmaElectronicaWorker.Services
 
         //Enviara a firmar por SignBox los documentos pendientes para firmar
 
-        public async Task<SignBoxSignResponse> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc)
+        public async Task<SignBoxSignResponse> EnviarDocumentoAFirmarSignBox(DocumentoPendiente doc, InfoFirmanteCoop infoFirmante)
         {
             try
             {
                 string rutaArchivo = doc.RutaArchivo;
-                //string rutaArchivo = @"C:\DocumentosPruebaFirmaElectronica\DocumentosFirmadosSignBox\20250625CR_CONTRATO_CREDITO01-1-3.pdf";
 
                 if (!File.Exists(rutaArchivo))
                 {
@@ -226,7 +298,7 @@ namespace FirmaElectronicaWorker.Services
                     return new SignBoxSignResponse
                     {
                         Result = false,
-                        Status = "ERROR",
+                        Status = "ERROR CON LEER ARCHIVOS DESDE EL DISCO",
                         Detail = errorMsg,
                         WebhookPdf = string.Empty,
                         WebhookTxt = string.Empty
@@ -261,24 +333,46 @@ namespace FirmaElectronicaWorker.Services
                 {
                     _logger.LogWarning("⚠️ Imagen no encontrada: {Path}", imagePath);
                 }
-                content.Add(new StringContent("test"), "reason");
-                content.Add(new StringContent("Guayaquil, Ecuador"), "location");
-                content.Add(new StringContent("1091583"), "username");
-                content.Add(new StringContent("RY3qn76H"), "password");
-                content.Add(new StringContent("Javier123_"), "pin");
+
+
+                var reasonFirma = $"Firma de doc: {doc.CodigoDocumento}_Sol{doc.Solicitud}_firmanteCoop";
+                var paragraphFormat = new[]
+                                {
+                                    new
+                                    {
+                                        font = new object[] { "Universal-Bold", 6 },
+                                        align = "right",
+                                        data_format = new
+                                        {
+                                            timezone = "America/Guayaquil",
+                                            strtime = "%d/%m/%Y %H:%M:%S"
+                                        },
+                                        format = new string[]
+                                        {
+                                            "Firmado por:",
+                                            "$(CN)s",
+                                            $"C.I. {infoFirmante.Identificacion}",
+                                            $"{infoFirmante.Cargo}",
+                                            "ID: $(serialNumber)s"
+                                        }
+                                    }
+                                };
+
+
+                string json = JsonSerializer.Serialize(paragraphFormat);
+
+
+                string paragrapgFormatjson = JsonSerializer.Serialize(paragraphFormat);
+
+
+                content.Add(new StringContent(reasonFirma), "reason");
+                content.Add(new StringContent(infoFirmante.Ubicacion), "location");
+                content.Add(new StringContent(infoFirmante.Usuario), "username");
+                content.Add(new StringContent(infoFirmante.Password), "password");
+                content.Add(new StringContent(infoFirmante.Pin), "pin");
                 content.Add(new StringContent("10,10,150,59"), "position");
                 content.Add(new StringContent("2"), "npage");
-
-                string paragraphFormat = @"[{
-          ""font"": [""Universal-Bold"", 6],
-          ""align"": ""right"",
-          ""data_format"": {
-            ""timezone"": ""America/Guayaquil"",
-            ""strtime"": ""%d/%m/%Y %H:%M:%S""
-          },
-          ""format"": [""Firmado por:"", ""$(CN)s"", ""ID: $(serialNumber)s""]
-        }]";
-                content.Add(new StringContent(paragraphFormat), "paragraphFormat");
+                content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
 
                 var response = await client.PostAsync(url, content);
                 var result = await response.Content.ReadAsStringAsync();
