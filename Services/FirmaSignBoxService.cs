@@ -2,6 +2,7 @@
 using FirmaElectronicaWorker.Dto.Response;
 using FirmaElectronicaWorker.Interfaces;
 using FirmaElectronicaWorker.Models;
+using FirmaElectronicaWorker.Utils;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualBasic;
 using System.Net.Http.Headers;
@@ -17,17 +18,20 @@ namespace FirmaElectronicaWorker.Services
         private readonly ILogger<FirmaSignBoxService> _logger;
         private readonly AppSettingService _appSettings;
         private readonly ExternalUrls _urls;
+        private readonly PdfUtils _pdfUtils;
 
         public FirmaSignBoxService(
             ILogger<FirmaSignBoxService> logger,
             IHttpClientFactory httpClientFactory,
             AppSettingService appSettings,
-            IOptions<ExternalUrls> urls)
+            IOptions<ExternalUrls> urls,
+            PdfUtils pdfUtils)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _appSettings = appSettings;
             _urls = urls.Value;
+            _pdfUtils = pdfUtils;
         }
 
         public async Task Execute()
@@ -328,123 +332,122 @@ namespace FirmaElectronicaWorker.Services
                 if (string.IsNullOrWhiteSpace(infoFirmante.ImagenFirma))
                 {
                     _logger.LogWarning("La imagen de la firma está vacía o nula.");
-                    
+
                 }
                 // Validar que sea una cadena base64 válida (opcional pero útil)
-                try
+                else
                 {
                     // Intentar convertir a bytes para validar el formato base64
-                    Convert.FromBase64String(infoFirmante.ImagenFirma);
+                    content.Add(new StringContent(infoFirmante.ImagenFirma), "image");
                 }
-                catch (FormatException)
-                {
-                    _logger.LogError("La cadena de imagen de firma no tiene un formato Base64 válido.");
-                }
-                finally{
-                    var imageContent = new StringContent(infoFirmante.ImagenFirma, Encoding.UTF8, "text/plain");
-                    content.Add(imageContent, "image");
-                }
-                
-                
-
-                var reasonFirma = $"Firma de doc: {doc.CodigoDocumento}_Sol{doc.Solicitud}_firmanteCoop";
-                content.Add(new StringContent(reasonFirma), "reason");
 
 
-                var paragraphFormat = new[]
-                                {
-                                    new
+
+                    var reasonFirma = $"Firma de doc: {doc.CodigoDocumento}_Sol{doc.Solicitud}_firmanteCoop";
+                    content.Add(new StringContent(reasonFirma), "reason");
+
+
+                    var paragraphFormat = new[]
                                     {
-                                        font = new object[] { "Universal-Bold", 6 },
-                                        align = "right",
-                                        data_format = new
-                                        {
-                                            timezone = "America/Guayaquil",
-                                            strtime = "%d/%m/%Y %H:%M:%S"
-                                        },
-                                        format = new string[]
-                                        {
-                                            " Firmado por:",
-                                            " $(CN)s",
-                                            $" C.I. {infoFirmante.Identificacion}",
-                                            $" {infoFirmante.Cargo}",
-                                            " ID: $(serialNumber)s"
-                                        }
-                                    }
-                                };
-                string json = JsonSerializer.Serialize(paragraphFormat);
-                string paragrapgFormatjson = JsonSerializer.Serialize(paragraphFormat);
-                
-                content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
-
-
-                
-
-
-                
-                content.Add(new StringContent(infoFirmante.Ubicacion), "location");
-                content.Add(new StringContent(infoFirmante.Usuario), "username");
-                content.Add(new StringContent(infoFirmante.Password), "password");
-                content.Add(new StringContent(infoFirmante.Pin), "pin");
-                content.Add(new StringContent(doc.Coordenadas), "position");
-
-
-                string ubicacionPaginaFirma = doc.UbicacionPaginaFirma.ToString();
-                content.Add(new StringContent(ubicacionPaginaFirma), "npage");
-                
-
-                var response = await client.PostAsync(url, content);
-                var result = await response.Content.ReadAsStringAsync();
-
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    // Intentamos deserializar como Problem+JSON
-                    try
-                    {
-                        var apiError = JsonSerializer.Deserialize<ApiErrorResponse>(result);
-                        var detalles = apiError.Violations != null
-                            ? string.Join("; ", apiError.Violations.Select(v => $"{v.Field}: {v.Message}"))
-                            : apiError.Message;
-
-                        return new SignBoxSignResponse
+                        new
                         {
-                            Result = false,
-                            Status = apiError.Status.ToString(),
-                            Detail = $"Error {apiError.Status} {apiError.Title}: {detalles}",
-                            WebhookTxt = string.Empty,
-                            WebhookPdf = string.Empty
-                        };
-                    }
-                    catch (JsonException)
-                    {
-                        // Si no pudo parsear Problem+JSON, devolvemos el body crudo
-                        return new SignBoxSignResponse
-                        {
-                            Result = false,
-                            Status = ((int)response.StatusCode).ToString(),
-                            Detail = $"Error {(int)response.StatusCode}: {result}",
-                            WebhookTxt = string.Empty,
-                            WebhookPdf = string.Empty
-                        };
-                    }
-                }
-
-                // Si es 2xx, intentamos deserializar al DTO esperado
-                var éxito = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
-                if (éxito == null)
-                {
-                    return new SignBoxSignResponse
-                    {
-                        Result = false,
-                        Status = "ERROR",
-                        Detail = "No se pudo deserializar respuesta válida.",
-                        WebhookTxt = string.Empty,
-                        WebhookPdf = string.Empty
+                            font = new object[] { "Universal-Bold", 6 },
+                            align = "right",
+                            data_format = new
+                            {
+                                timezone = "America/Guayaquil",
+                                strtime = "%d/%m/%Y %H:%M:%S"
+                            },
+                            format = new string[]
+                                            {
+                                                " Firmado por:",
+                                                " $(CN)s",
+                                                $" C.I. {infoFirmante.Identificacion}",
+                                                $" {infoFirmante.Cargo}",
+                                                " ID: $(serialNumber)s"
+                                            }
+                        }
                     };
+                    string json = JsonSerializer.Serialize(paragraphFormat);
+                    string paragrapgFormatjson = JsonSerializer.Serialize(paragraphFormat);
+                    content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
+
+
+                    int totalPaginas = _pdfUtils.ObtenerNumPaginasPdf(doc.RutaArchivo);
+                    _logger.LogInformation($"📄 El documento tiene {totalPaginas} páginas.");
+
+                    string ubicacionPaginaFirma = doc.UbicacionPaginaFirma.ToString();
+                    // Validar que el npage solicitado esté dentro del rango
+                    if (doc.UbicacionPaginaFirma > totalPaginas - 1 || doc.UbicacionPaginaFirma < 1)
+                    {
+                        _logger.LogWarning($"⚠️ La página de firma ({doc.UbicacionPaginaFirma}) está fuera del rango del documento ({totalPaginas} páginas)");
+                        ubicacionPaginaFirma = (totalPaginas - 1).ToString();
+                    }
+                    content.Add(new StringContent(ubicacionPaginaFirma), "npage");
+
+
+                    content.Add(new StringContent(infoFirmante.Ubicacion), "location");
+                    content.Add(new StringContent(infoFirmante.Usuario), "username");
+                    content.Add(new StringContent(infoFirmante.Password), "password");
+                    content.Add(new StringContent(infoFirmante.Pin), "pin");
+                    content.Add(new StringContent(doc.Coordenadas), "position");
+
+
+                
+
+
+                    var response = await client.PostAsync(url, content);
+                    var result = await response.Content.ReadAsStringAsync();
+
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        // Intentamos deserializar como Problem+JSON
+                        try
+                        {
+                            var apiError = JsonSerializer.Deserialize<ApiErrorResponse>(result);
+                            var detalles = apiError.Violations != null
+                                ? string.Join("; ", apiError.Violations.Select(v => $"{v.Field}: {v.Message}"))
+                                : apiError.Message;
+
+                            return new SignBoxSignResponse
+                            {
+                                Result = false,
+                                Status = apiError.Status.ToString(),
+                                Detail = $"Error {apiError.Status} {apiError.Title}: {detalles}",
+                                WebhookTxt = string.Empty,
+                                WebhookPdf = string.Empty
+                            };
+                        }
+                        catch (JsonException)
+                        {
+                            // Si no pudo parsear Problem+JSON, devolvemos el body crudo
+                            return new SignBoxSignResponse
+                            {
+                                Result = false,
+                                Status = ((int)response.StatusCode).ToString(),
+                                Detail = $"Error {(int)response.StatusCode}: {result}",
+                                WebhookTxt = string.Empty,
+                                WebhookPdf = string.Empty
+                            };
+                        }
+                    }
+
+                    // Si es 2xx, intentamos deserializar al DTO esperado
+                    var éxito = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
+                    if (éxito == null)
+                    {
+                        return new SignBoxSignResponse
+                        {
+                            Result = false,
+                            Status = "ERROR",
+                            Detail = "No se pudo deserializar respuesta válida.",
+                            WebhookTxt = string.Empty,
+                            WebhookPdf = string.Empty
+                        };
+                    }
+                    return éxito;
                 }
-                return éxito;
-            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Excepción al invocar SignBox");
