@@ -1,5 +1,4 @@
-
-CREATE OR ALTER   PROCEDURE [BancaVirtual].[spGenerarArchivos]
+CREATE OR ALTER    PROCEDURE [BancaVirtual].[spGenerarArchivos]
 @_UserName                          varchar(20),
 @_SessionID                         int output,
 @_CodeReturn                        int output,
@@ -25,41 +24,28 @@ DECLARE
 
 
 
-	 select @solicitud = (select top(1)IDSolicitud
-	  from BancaVirtual.SolicitudCredito s, Usuario u
-	  where s.ClienteId = u.ClienteId
-	  and u.UserName = @_UserName
-	  order by s.ID desc)
+			-- Obtener solicitud y monto
+			select @solicitud = (
+				select top(1) IDSolicitud
+				from BancaVirtual.SolicitudCredito s
+				join Usuario u on s.ClienteId = u.ClienteId
+				where u.UserName = @_UserName
+				order by s.ID desc
+			)
 
-	  	  select @monto= sol_monto 
-FROM CREDITO..SL_SOLICITUD
-where  sol_solicitud= @solicitud
+			select @monto = sol_monto 
+			from CREDITO..SL_SOLICITUD
+			where sol_solicitud = @solicitud
 
-if @monto >= 5000 
-	begin
-
-	INSERT INTO  @reportes (codigo)
-	VALUES ('CR_CONTRATO_CREDITO'),
-		   ('CR_CERT_INDIVIDUAL'),
-		  ('CR_CONDICIONES_CR'),
-		   ('CR_SOLICITUD_CREDITO'),
-		  ('CR_CONVENIO_USO'),
-		  ('CR_AUTORIZACION'),
-		  ('CR_PAGARE'),
-		  ('LICITUD_FONDOS_CRW')
-
-	end
-else
-	begin
-	INSERT INTO  @reportes (codigo)
-	VALUES ('CR_CONTRATO_CREDITO'),
-		   ('CR_CERT_INDIVIDUAL'),
-		  ('CR_CONDICIONES_CR'),
-		   ('CR_SOLICITUD_CREDITO'),
-		  ('CR_CONVENIO_USO'),
-		  ('CR_AUTORIZACION'),
-		  ('CR_PAGARE')
-	end
+			-- Insertar reportes según lógica dinámica
+			INSERT INTO @reportes (codigo)
+			SELECT doc_datawindow
+			FROM CREDITO..SL_DOCUMENTOS
+			WHERE 
+				-- Si el campo es NULL (no requiere monto) o el monto cumple con el mínimo
+				(doc_monto_minimo_impresion IS NULL
+				OR @monto >= doc_monto_minimo_impresion)
+				AND doc_para_firma_electronica = 1
 
 
 EXEC @lote = PARAMETROS.dbo.sp_co_siguiente_secuencial @AS_CODIGO = 'BV_CREDITO_WEB'
@@ -122,5 +108,8 @@ SET @Result = (
 
 
 SET @_CodeReturn = 1	 
+
+
+
 
 

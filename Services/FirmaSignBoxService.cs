@@ -317,22 +317,37 @@ namespace FirmaElectronicaWorker.Services
 
                 var content = new MultipartFormDataContent();
 
-                string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}";
+                //string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}";
+                string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}_62565656";
+
                 content.Add(pdfContent, "fileIn", Path.GetFileName(rutaArchivo));
+
                 content.Add(new StringContent(webhookId), "webhookId");
 
-                var imagePath = @"C:\DocumentosPruebaFirmaElectronica\25\firmaPruebaIA.png";
-                if (File.Exists(imagePath))
+
+
+                if (string.IsNullOrWhiteSpace(infoFirmante.ImagenFirma))
                 {
-                    var imgBytes = await File.ReadAllBytesAsync(imagePath);
-                    var imageBase64 = Convert.ToBase64String(imgBytes);
-                    var imageContent = new StringContent(imageBase64, Encoding.UTF8, "text/plain");
+                    _logger.LogWarning("La imagen de la firma está vacía o nula.");
+                    
+                }
+                // Validar que sea una cadena base64 válida (opcional pero útil)
+                try
+                {
+                    // Intentar convertir a bytes para validar el formato base64
+                    Convert.FromBase64String(infoFirmante.ImagenFirma);
+                }
+                catch (FormatException)
+                {
+                    _logger.LogError("La cadena de imagen de firma no tiene un formato Base64 válido.");
+                }
+                finally{
+                    var imageContent = new StringContent(infoFirmante.ImagenFirma, Encoding.UTF8, "text/plain");
                     content.Add(imageContent, "image");
                 }
-                else
-                {
-                    _logger.LogWarning("⚠️ Imagen no encontrada: {Path}", imagePath);
-                }
+                
+                
+
 
 
                 var reasonFirma = $"Firma de doc: {doc.CodigoDocumento}_Sol{doc.Solicitud}_firmanteCoop";
@@ -349,29 +364,28 @@ namespace FirmaElectronicaWorker.Services
                                         },
                                         format = new string[]
                                         {
-                                            "Firmado por:",
-                                            "$(CN)s",
-                                            $"C.I. {infoFirmante.Identificacion}",
-                                            $"{infoFirmante.Cargo}",
-                                            "ID: $(serialNumber)s"
+                                            " Firmado por:",
+                                            " $(CN)s",
+                                            $" C.I. {infoFirmante.Identificacion}",
+                                            $" {infoFirmante.Cargo}",
+                                            " ID: $(serialNumber)s"
                                         }
                                     }
                                 };
 
 
                 string json = JsonSerializer.Serialize(paragraphFormat);
-
-
                 string paragrapgFormatjson = JsonSerializer.Serialize(paragraphFormat);
+                string ubicacionPaginaFirma = doc.UbicacionPaginaFirma.ToString();
+                
 
-
-                content.Add(new StringContent(reasonFirma), "reason");
-                content.Add(new StringContent(infoFirmante.Ubicacion), "location");
+                //content.Add(new StringContent(reasonFirma), "reason");
+                //content.Add(new StringContent(infoFirmante.Ubicacion), "location");
                 content.Add(new StringContent(infoFirmante.Usuario), "username");
                 content.Add(new StringContent(infoFirmante.Password), "password");
                 content.Add(new StringContent(infoFirmante.Pin), "pin");
-                content.Add(new StringContent("10,10,150,59"), "position");
-                content.Add(new StringContent("2"), "npage");
+                content.Add(new StringContent(doc.Coordenadas), "position");
+                content.Add(new StringContent(ubicacionPaginaFirma), "npage");
                 content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
 
                 var response = await client.PostAsync(url, content);
