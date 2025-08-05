@@ -288,8 +288,18 @@ namespace FirmaElectronicaWorker.Services
         {
             try
             {
-                string rutaArchivo = doc.RutaArchivo;
 
+                string url = _urls.SignDocumentUrlSignBox;
+
+                using var client = _httpClientFactory.CreateClient();
+                string token = await ObtenerTokenSignBoxAsync();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+
+                var content = new MultipartFormDataContent();
+
+
+                string rutaArchivo = doc.RutaArchivo;
                 if (!File.Exists(rutaArchivo))
                 {
                     string errorMsg = $"El archivo no existe: {rutaArchivo}";
@@ -304,24 +314,13 @@ namespace FirmaElectronicaWorker.Services
                         WebhookTxt = string.Empty
                     };
                 }
-
-                using var client = _httpClientFactory.CreateClient();
-
-                string url = _urls.SignDocumentUrlSignBox;
-                string token = await ObtenerTokenSignBoxAsync();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
                 var pdfStream = new FileStream(rutaArchivo, FileMode.Open, FileAccess.Read);
                 var pdfContent = new StreamContent(pdfStream);
                 pdfContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
-
-                var content = new MultipartFormDataContent();
-
-                //string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}";
-                string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}_62565656";
-
                 content.Add(pdfContent, "fileIn", Path.GetFileName(rutaArchivo));
 
+
+                string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}";
                 content.Add(new StringContent(webhookId), "webhookId");
 
 
@@ -348,9 +347,10 @@ namespace FirmaElectronicaWorker.Services
                 
                 
 
-
-
                 var reasonFirma = $"Firma de doc: {doc.CodigoDocumento}_Sol{doc.Solicitud}_firmanteCoop";
+                content.Add(new StringContent(reasonFirma), "reason");
+
+
                 var paragraphFormat = new[]
                                 {
                                     new
@@ -372,21 +372,26 @@ namespace FirmaElectronicaWorker.Services
                                         }
                                     }
                                 };
-
-
                 string json = JsonSerializer.Serialize(paragraphFormat);
                 string paragrapgFormatjson = JsonSerializer.Serialize(paragraphFormat);
-                string ubicacionPaginaFirma = doc.UbicacionPaginaFirma.ToString();
+                
+                content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
+
+
                 
 
-                //content.Add(new StringContent(reasonFirma), "reason");
-                //content.Add(new StringContent(infoFirmante.Ubicacion), "location");
+
+                
+                content.Add(new StringContent(infoFirmante.Ubicacion), "location");
                 content.Add(new StringContent(infoFirmante.Usuario), "username");
                 content.Add(new StringContent(infoFirmante.Password), "password");
                 content.Add(new StringContent(infoFirmante.Pin), "pin");
                 content.Add(new StringContent(doc.Coordenadas), "position");
+
+
+                string ubicacionPaginaFirma = doc.UbicacionPaginaFirma.ToString();
                 content.Add(new StringContent(ubicacionPaginaFirma), "npage");
-                content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
+                
 
                 var response = await client.PostAsync(url, content);
                 var result = await response.Content.ReadAsStringAsync();
