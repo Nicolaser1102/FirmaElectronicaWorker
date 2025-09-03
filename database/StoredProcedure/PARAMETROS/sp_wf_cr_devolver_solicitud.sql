@@ -1,0 +1,106 @@
+CREATE OR ALTER PROCEDURE [sp_wf_cr_devolver_solicitud]
+@AI_ID_SOLICITUD INT,
+@AS_USUARIO VARCHAR(15),
+@AS_XML NVARCHAR(4000),
+@AS_MSJ VARCHAR(100) OUTPUT
+AS
+	DECLARE @LI_SOLICITUD INT,
+			@LI_RET INT,
+			@LS_OFICINA_SOLICITUD CHAR(4),
+			@LS_OFICINA_SOL_ANT CHAR(4),
+			@LS_COMENTARIO VARCHAR(200),
+			@LS_ESTADO CHAR(1),
+			@LDT_FECHA DATETIME,
+
+			@LS_PRODUCTO VARCHAR(20)
+			
+	SELECT @LI_SOLICITUD = CONVERT ( INT, sol_referencia)
+	FROM WF_SOLICITUD
+	WHERE sol_id_solicitud = @AI_ID_SOLICITUD
+
+
+SET @LS_PRODUCTO = (SELECT sol_producto FROM SL_SOLICITUD where sol_solicitud = @LI_SOLICITUD)
+
+IF @LS_PRODUCTO = 'CRWEB'
+	BEGIN 
+	
+		SET @AS_MSJ = 'PRODUCTO NO PUEDE SER DEVUELTO'
+		RETURN -1
+					
+	END 
+
+	EXEC @LI_RET = CREDITO..sp_sl_wf_devolver_solicitud
+			@LI_SOLICITUD, 
+			@AS_USUARIO, 
+			@AS_MSJ OUTPUT
+			
+			
+	
+
+	SELECT @LS_COMENTARIO = tar_comentario 
+	FROM WF_LOG_TAREA
+	WHERE tar_id_solicitud = @AI_ID_SOLICITUD
+	AND tar_id_tarea = (SELECT MAX(tar_id_tarea) FROM WF_LOG_TAREA WHERE tar_id_solicitud = @AI_ID_SOLICITUD)
+	
+	SELECT @LS_ESTADO = sol_estado,  
+	@LS_OFICINA_SOLICITUD = sol_oficina
+	FROM CREDITO..SL_SOLICITUD 
+	where sol_solicitud = @LI_SOLICITUD
+	
+	UPDATE CREDITO..SL_COMITE_APROB
+	SET cma_observacion = @LS_COMENTARIO , cma_estado = @LS_ESTADO 
+	WHERE cma_solicitud = @LI_SOLICITUD AND
+	cma_usuario = @AS_USUARIO
+
+	IF @@ERROR<>0
+		BEGIN
+			SET @AS_MSJ = 'ERROR AL ACTUALIZAR OBSERVACION SOLICITUD EXPRESS' 
+		RETURN -1
+	END		
+	
+	
+	IF EXISTS (SELECT 1 FROM WF_SOLICITUD WHERE sol_id_solicitud = @AI_ID_SOLICITUD and sol_oficina <> @LS_OFICINA_SOLICITUD)
+	BEGIN
+		
+		EXEC sp_FechaHoraSistema @LDT_FECHA OUTPUT
+		
+		
+		SELECT TOP 1 @LS_OFICINA_SOL_ANT = sro_oficina_actual
+		FROM CREDITO..SL_REASIGNACION_OFICINA 
+		WHERE sro_solicitud = @LI_SOLICITUD
+		ORDER BY sro_id DESC 
+	
+		INSERT CREDITO..SL_REASIGNACION_OFICINA
+		(
+		sro_solicitud,
+		sro_oficina_anterior,
+		sro_oficina_actual,
+		sro_usuario,
+		sro_fecha
+		)
+		VALUES
+		(
+		@LI_SOLICITUD,
+		@LS_OFICINA_SOL_ANT,
+		@LS_OFICINA_SOLICITUD,
+		@AS_USUARIO,
+		@LDT_FECHA
+		)
+		
+		
+		UPDATE WF_SOLICITUD
+		SET sol_oficina = @LS_OFICINA_SOLICITUD
+		WHERE sol_id_solicitud = @AI_ID_SOLICITUD and 
+		sol_oficina <> @LS_OFICINA_SOLICITUD
+				
+		IF @@ERROR<>0
+		BEGIN
+			SET @AS_MSJ = 'ERROR AL ACTUALIZAR LA OFICINA DEL FLUJO' 
+			RETURN -1
+		END		
+	END 			
+
+RETURN @LI_RET
+
+
+

@@ -1,0 +1,36 @@
+USE SEGURIDADES
+GO
+CREATE OR ALTER PROCEDURE [sp_se_usuario_cambiar_password_credenciales_firma_electr]
+@AS_USU_CLAVE VARCHAR(15),
+@AS_MSJ varchar(100) OUTPUT
+AS
+
+
+
+DECLARE @LI_CLAVE_LARGO  INT
+SELECT @LI_CLAVE_LARGO = dbo.f_obtener_parametro_i ('SE_CLAVELARGO')
+
+IF ( @LI_CLAVE_LARGO > LEN (@AS_USU_CLAVE) )
+BEGIN
+	SET @AS_MSJ = 'LA CONTRASEÑA DEBE TENER MAS DE ' + CONVERT ( VARCHAR, @LI_CLAVE_LARGO ) + ' CARACTERES'
+	RETURN -1
+END
+
+
+
+
+
+DECLARE @LI_RET  INT
+IF (dbo.f_obtener_parametro_b('SE_CLAVE_FUERTE') = 1)
+BEGIN
+	EXEC @LI_RET = sp_se_validar_clave_fuerte
+		@AS_USU_CLAVE = @AS_USU_CLAVE,
+		@AS_MSJ = @AS_MSJ OUTPUT
+	IF	@LI_RET = -1
+		RETURN -1
+
+END		
+
+RETURN @LI_RET
+
+

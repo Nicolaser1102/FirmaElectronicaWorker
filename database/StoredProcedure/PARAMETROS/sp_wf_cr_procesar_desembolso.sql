@@ -1,0 +1,267 @@
+USE PARAMETROS 
+GO
+CREATE OR ALTER PROCEDURE [dbo].[sp_wf_cr_procesar_desembolso]
+@AI_ID_SOLICITUD INT,
+@AS_USUARIO VARCHAR(15),
+@AS_XML NVARCHAR(4000),
+@AS_MSJ VARCHAR(100) OUTPUT
+AS
+	DECLARE @LI_SOLICITUD INT,
+			@LI_RET INT,
+			@LI_BUSQUEDA_INI INT,
+			@LI_BUSQUEDA_FIN INT,
+			@LI_LEN INT,
+			@LS_XML_DESEMBOLSO_DET VARCHAR(4000),
+			@LI_CLIENTE INTEGER,
+			@LI_ID INT,
+			@LS_PRODUCTO VARCHAR(20)
+			
+			
+	SELECT @LI_SOLICITUD = CONVERT ( INT, sol_referencia),
+	@LI_CLIENTE = sol_id_cliente
+	FROM WF_SOLICITUD
+	WHERE sol_id_solicitud = @AI_ID_SOLICITUD
+	
+			
+DECLARE @LS_OFICINA CHAR(4),
+			@LS_TIPO_DESEMBOLSO CHAR(3),
+			@LS_REFERENCIA VARCHAR(20),
+			@LS_FONDO CHAR(111),
+			@LS_SUBFONDO CHAR(111),
+			@LDT_FECHA_DES DATETIME,
+			@LDT_FECHA_1ER_PG DATETIME ,
+			@LDEC_TASA DECIMAL ( 18, 4 ),
+			@LB_RENOVACION BIT,
+			@LM_VALOR_PAGAR MONEY,
+			@LI_ENTIDAD_FINANCIERA INTEGER,
+			@LS_TIPO_CUENTA CHAR(1),
+			@LS_NUMERO_CUENTA VARCHAR(20),
+			@LS_CREDITO VARCHAR(20),
+			@LM_VALOR_PARTICIPACION MONEY,
+			@LB_GENERA_VALOR_PARTICIP BIT,
+			@LM_PORCENTAJE_PART MONEY,
+			@LM_SOL_MONTO MONEY
+
+
+
+
+			
+
+--SET @LS_XML = '<XML><DATOS><OFICINA>1001</OFICINA>
+--<TIPO_DESEMBOLSO>AS</TIPO_DESEMBOLSO>
+--<REFERENCIA>ASDADS</REFERENCIA>
+--<FONDO>ASDADS</FONDO>
+--<FECHA_DES>20120404</FECHA_DES>
+--<FECHA_1ER_PG>20121230</FECHA_1ER_PG>
+--<TASA>12.45</TASA>
+--<RENOVACION>0</RENOVACION>
+--<VALOR_PAGAR>1291</VALOR_PAGAR>
+--<ENTIDAD_FINANCIERA>1</ENTIDAD_FINANCIERA>
+--<TIPO_CUENTA>1</TIPO_CUENTA>
+--<NUMERO_CUENTA>2121212</NUMERO_CUENTA></DATOS></XML>
+--'
+DECLARE @idoc int
+
+EXEC sp_xml_preparedocument @idoc OUTPUT, @AS_XML
+SELECT  @LS_OFICINA = OFICINA,
+		@LS_TIPO_DESEMBOLSO = TIPO_DESEMBOLSO,
+		@LS_REFERENCIA = REFERENCIA,
+		@LS_FONDO = FONDO,
+		@LS_SUBFONDO = SUBFONDO,
+		@LDT_FECHA_DES = FECHA_DES,
+		@LDT_FECHA_1ER_PG = FECHA_1ER_PG,
+		@LDEC_TASA = TASA,
+		@LB_RENOVACION = RENOVACION,
+		@LM_VALOR_PAGAR = VALOR_PAGAR,
+		@LI_ENTIDAD_FINANCIERA = CASE WHEN ENTIDAD_FINANCIERA < 1 THEN NULL ELSE ENTIDAD_FINANCIERA  END,
+		@LS_TIPO_CUENTA = CASE WHEN TIPO_CUENTA = '' THEN NULL ELSE TIPO_CUENTA END,
+		@LS_NUMERO_CUENTA = CASE WHEN NUMERO_CUENTA = '' THEN NULL ELSE NUMERO_CUENTA END
+FROM   OPENXML (@idoc, N'//DATOS')
+      WITH (OFICINA CHAR(4) 'OFICINA' ,
+			TIPO_DESEMBOLSO CHAR(3) 'TIPO_DESEMBOLSO',
+			REFERENCIA VARCHAR(20) 'REFERENCIA ' ,
+			FONDO CHAR(111) 'FONDO ',
+			SUBFONDO CHAR(111) 'SUBFONDO ',
+			FECHA_DES DATETIME 'FECHA_DES',
+			FECHA_1ER_PG DATETIME 'FECHA_1ER_PG',
+			TASA DECIMAL ( 18, 4 ) 'TASA',
+			RENOVACION BIT 'RENOVACION',
+			VALOR_PAGAR MONEY 'VALOR_PAGAR',
+			ENTIDAD_FINANCIERA INTEGER 'ENTIDAD_FINANCIERA',
+			TIPO_CUENTA CHAR(1) 'TIPO_CUENTA',
+			NUMERO_CUENTA VARCHAR(20) 'NUMERO_CUENTA') R
+ 
+
+EXEC sp_xml_removedocument @idoc
+
+
+
+IF @LS_TIPO_DESEMBOLSO IS NULL OR @LS_TIPO_DESEMBOLSO = ''
+BEGIN
+	SET @AS_MSJ = 'INGRESE EL TIPO DE DESEMBOLSO'
+	RETURN -1
+END 
+
+IF @LS_FONDO IS NULL  OR @LS_FONDO = ''
+BEGIN
+	SET @AS_MSJ = 'INGRESE EL FONDO'
+	RETURN -1
+END 
+
+
+SET @LS_PRODUCTO = (SELECT sol_producto FROM CREDITO..SL_SOLICITUD where sol_solicitud = @LI_SOLICITUD)
+
+IF @LS_PRODUCTO = 'CRWEB'
+	BEGIN 
+		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+						AND  OnBoardingRutaDocumento IS NULL AND OnBoardingEstadoFirma != 'F' )
+						BEGIN 
+							SET @AS_MSJ = 'DOCUMENTOS PENDIENTES DE FIRMA ELECTRÓNICA'
+							RETURN -1
+						END 
+	END 
+
+
+
+SELECT @LI_BUSQUEDA_INI = CHARINDEX('<DESEMBOLSO>', @AS_XML)
+SELECT @LI_BUSQUEDA_FIN = CHARINDEX('</DESEMBOLSO>', @AS_XML)
+SET @LI_LEN = @LI_BUSQUEDA_FIN - @LI_BUSQUEDA_INI + LEN('</DESEMBOLSO>')
+
+IF @LI_BUSQUEDA_INI > 0
+	SELECT @LS_XML_DESEMBOLSO_DET = SUBSTRING (@AS_XML,@LI_BUSQUEDA_INI,@LI_LEN )
+
+
+	if exists(select 1 from CREDITO..CR_TIPO_DESEMBOLSO WHERE tds_tipo_desembolso = @LS_TIPO_DESEMBOLSO AND tds_es_ahorros = 1)
+	BEGIN
+
+		SELECT @LS_CREDITO = map_credito,
+		@LB_GENERA_VALOR_PARTICIP = CREDITO.dbo.f_cr_obtener_parametro_b(sol_producto,'BIT_GEN_POR_PART'),
+		@LM_PORCENTAJE_PART =  convert(money,CREDITO.dbo.f_cr_obtener_parametro_f(sol_producto,'POR_PARTICIP')) 
+		FROM CREDITO..SL_MEDIO_APROB,CREDITO..SL_SOLICITUD
+		where sol_solicitud = @LI_SOLICITUD and 
+		map_solicitud = sol_solicitud 
+
+	
+		if @LB_GENERA_VALOR_PARTICIP = 1 and @LM_PORCENTAJE_PART > 0
+		begin
+		
+			SET @LM_VALOR_PARTICIPACION = @LM_SOL_MONTO * @LM_PORCENTAJE_PART / 100.00
+			
+			IF ISNULL(@LM_VALOR_PARTICIPACION,0) > 0 
+			BEGIN
+
+				EXEC @LI_RET = CUENTAS..sp_ah_transferencia_participacion 
+				@AS_CUENTA = @LS_NUMERO_CUENTA,
+				@AM_VALOR_PARTICIPACION = @LM_VALOR_PARTICIPACION,
+				@AS_USUARIO = @AS_USUARIO,
+				@AS_OFICINA = @LS_OFICINA,
+				@aS_CREDITO = @LS_CREDITO, 
+				@AS_MSJ = @AS_MSJ OUTPUT
+				
+				IF @LI_RET = -1
+					RETURN -1
+			END 
+		end 
+
+	END 
+
+	
+	EXEC @LI_RET = CREDITO..sp_cr_procesar_desembolso
+			@AS_USUARIO = @AS_USUARIO,
+			@AS_OFICINA = @LS_OFICINA,
+			@AI_SOLICITUD = @LI_SOLICITUD,
+			@AS_TIPO_DESEMBOLSO = @LS_TIPO_DESEMBOLSO,
+			@AS_REFERENCIA = @LS_REFERENCIA ,
+			@AS_FONDO = @LS_FONDO ,
+			@AS_SUBFONDO = @LS_SUBFONDO ,
+			@ADT_FECHA_DES = @LDT_FECHA_DES,
+			@ADT_FECHA_1ER_PG = @LDT_FECHA_1ER_PG,
+			@ADEC_TASA = @LDEC_TASA ,
+			@AB_RENOVACION = @LB_RENOVACION ,
+			@AM_VALOR_PAGAR = @LM_VALOR_PAGAR ,
+			@AI_ENTIDAD_FINANCIERA = @LI_ENTIDAD_FINANCIERA ,
+			@AS_TIPO_CUENTA = @LS_TIPO_CUENTA ,
+			@AS_NUMERO_CUENTA = @LS_NUMERO_CUENTA ,
+			@AS_CREDITO = @LS_CREDITO OUTPUT,
+			@AS_MSJ = @AS_MSJ OUTPUT,
+			@AS_XML_DESEMBOLSO = @LS_XML_DESEMBOLSO_DET
+
+	IF @LI_RET = -1
+		RETURN -1
+
+
+
+	IF @LS_PRODUCTO = 'CRWEB'
+	BEGIN 
+	--Enviar notificación SMS del desembolso
+	EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[sp_crm_notif_sms_cr_desembolso_crbv]
+				@LI_ID  OUTPUT,
+				@LI_SOLICITUD ,
+				'ADMIN',
+				@AS_MSJ	 OUTPUT
+
+				 IF @@ERROR <> 0
+    BEGIN
+        PRINT 'Error al enviar SMS para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+        --RETURN -1;
+    END
+
+	
+	DECLARE		@_UserName varchar(20),
+				@_SessionId int = NULL,
+				@_CodeReturn int,
+				@_Message varchar(200),
+				@Request varchar(max),
+				@Result varchar(max)
+
+
+				SELECT @_UserName = UserName FROM BancaVirtual2.BancaVirtual.Usuario, CREDITO..SL_SOLICITUD where ClienteId = sol_cliente
+				and sol_solicitud = @LI_SOLICITUD
+
+				SET @Request = '{ "credito": "' + @LS_CREDITO + '" }'
+
+	EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[spNotificacionEmailDesembolsoCreditoCRW]
+					@_UserName                          ,
+					@_SessionID                        output,
+					@_CodeReturn                        output,
+					@_Message                            output,
+					@Request                            ,
+					@Result                              output
+
+					  IF @@ERROR <> 0
+    BEGIN
+        PRINT 'Error al enviar correo para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+       -- RETURN -1;
+    END
+
+	END 
+
+
+		
+
+if exists (	select 1 
+			from CREDITO..SL_SOLICITUD,CREDITO..CR_PARAM_PRODUCTO,CREDITO..CR_PARAMETROS 
+			WHERE sol_solicitud = @LI_SOLICITUD AND 
+			ppr_producto = sol_producto AND 
+				ppr_id_parametro = par_id_parametro AND 
+				par_parametro = 'CREDITO_PARA_WEB' AND 
+				ppr_valor_b = 1
+			)
+BEGIN
+
+	---SI EL CREDITO ES WEB
+	EXEC @LI_RET = BancaVirtual2.BancaVirtual.sp_bv_actualizar_estado_rol_pago
+	@AI_CLIENTE = @LI_CLIENTE,
+	@AS_ESTADO = 'B',
+	@AI_APROBADO = 1,
+	@AS_USUARIO = @AS_USUARIO, 
+	@AS_MSJ = @AS_MSJ OUTPUT
+
+IF @LI_RET = -1
+	RETURN -1
+
+END 		
+	
+RETURN 1	
+		
+
