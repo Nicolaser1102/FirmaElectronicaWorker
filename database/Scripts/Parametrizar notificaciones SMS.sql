@@ -39,6 +39,48 @@ BEGIN
     PRINT 'Ya existe un registro con tns_codigo = CR_DES_WEB. No se insertó de nuevo.';
 END
 
+
+USE CLIENTES;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 
+    FROM CRM_SERVICIOS_NOTIFICACION_SMS 
+    WHERE tns_codigo = 'CR_WEB_ES'
+)
+BEGIN
+    INSERT INTO CRM_SERVICIOS_NOTIFICACION_SMS (
+        tns_codigo, 
+        tns_descripcion, 
+        tns_mensaje, 
+        tns_es_cierre, 
+        tns_procedimiento, 
+        tns_hora_desde, 
+        tns_hora_hasta, 
+        tns_dias, 
+        tns_estado, 
+        creacion_usuario, 
+        creacion_fecha
+    )
+    VALUES (
+        'CR_WEB_ES',
+        'Mensaje encuesta de satisfacción del Cliente',
+        'Estimado socio la Cooperativa Difare le invita a completar la encuesta de satisfacción correspondiente al proceso de su solicitud de crédito: %s. Realice la encuesta en el siguiente link: %s',
+        0,
+        'BancaVirtual.sp_crm_notif_sms_cr_encuesta_satisfaccion_crbv',
+        '00:00',
+        '23:59',
+        1,
+        'A',
+        'ADMIN',
+        GETDATE()
+    );
+END
+ELSE
+BEGIN
+    PRINT 'Ya existe un registro con tns_codigo = CR_WEB_ES. No se insertó de nuevo.';
+END
+
 USE PARAMETROS;
 GO
 

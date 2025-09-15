@@ -113,6 +113,14 @@ SET @LS_PRODUCTO = (SELECT sol_producto FROM CREDITO..SL_SOLICITUD where sol_sol
 
 IF @LS_PRODUCTO = 'CRWEB'
 	BEGIN 
+
+		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+						)
+						BEGIN 
+							SET @AS_MSJ = 'NO SE PUDIERON ENVIAR LAS SOLICITUDES DE FIRMA DE ONBOARDING'
+							RETURN -1
+						END 
+
 		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
 						AND  OnBoardingRutaDocumento IS NULL AND OnBoardingEstadoFirma != 'F' )
 						BEGIN 
@@ -120,6 +128,7 @@ IF @LS_PRODUCTO = 'CRWEB'
 							RETURN -1
 						END 
 	END 
+
 
 
 
@@ -202,7 +211,7 @@ IF @LI_BUSQUEDA_INI > 0
 
 				 IF @@ERROR <> 0
     BEGIN
-        PRINT 'Error al enviar SMS para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+        PRINT 'Error al enviar SMS de encuesta de satisfacción para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
         --RETURN -1;
     END
 
