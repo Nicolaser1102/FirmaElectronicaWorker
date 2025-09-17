@@ -2,6 +2,7 @@
 using CommandLine;
 using FirmaElectronicaWorker.Models;
 using FirmaElectronicaWorker.Services;
+using FirmaElectronicaWorker.Utils;
 
 
 namespace FirmaElectronicaWorker;
@@ -36,6 +37,7 @@ public class Program
         services.AddSingleton<FirmaSignBoxService>();
         services.AddSingleton<FirmaOnBoardingService>();
         services.AddSingleton<GuardarDocumentosFirmadosService>();
+        services.AddSingleton<PdfUtils>();
 
         var configuration = new ConfigurationBuilder()
                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)

@@ -1,12 +1,12 @@
 USE CREDITO
 GO
-CREATE OR ALTER PROCEDURE [dbo].[sp_cr_cierre_anular_solicitudes_firma_electronica]
+CREATE OR ALTER PROCEDURE dbo.sp_cr_cierre_anular_solicitudes_firma_electr
     @ADT_FECHA DATETIME,
     @ADT_FECHA_PRC DATETIME,
     @AS_MSJ VARCHAR(100) OUT
 AS
 BEGIN
-    SET NOCOUNT ON;
+   -- SET NOCOUNT ON;
 
     -- Crear tabla temporal para almacenar registros relevantes
     IF OBJECT_ID('tempdb..#DocsAnulados') IS NOT NULL

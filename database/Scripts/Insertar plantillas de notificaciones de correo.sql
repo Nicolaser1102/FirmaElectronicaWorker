@@ -1,4 +1,6 @@
 -- Registro 1
+USE BancaVirtual2
+go 
 IF NOT EXISTS (
     SELECT 1
     FROM BancaVirtual.PlantillaNotificacionEmail

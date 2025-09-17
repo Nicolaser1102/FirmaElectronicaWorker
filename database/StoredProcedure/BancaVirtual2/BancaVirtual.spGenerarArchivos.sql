@@ -43,9 +43,9 @@ DECLARE
 			FROM CREDITO..SL_DOCUMENTOS
 			WHERE 
 				-- Si el campo es NULL (no requiere monto) o el monto cumple con el mínimo
-				(doc_monto_minimo_impresion IS NULL
-				OR @monto >= doc_monto_minimo_impresion)
-				AND doc_para_firma_electronica = 1
+				--(doc_monto_minimo_impresion IS NULL
+				--OR @monto >= doc_monto_minimo_impresion) AND 
+				doc_para_firma_electronica = 1
 
 
 EXEC @lote = PARAMETROS.dbo.sp_co_siguiente_secuencial @AS_CODIGO = 'BV_CREDITO_WEB'
