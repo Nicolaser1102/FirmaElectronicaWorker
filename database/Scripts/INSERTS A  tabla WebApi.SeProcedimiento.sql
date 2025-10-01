@@ -1,13 +1,13 @@
 USE [INTERFACE]; 
 GO
 
--- Insertar mÃºltiples registros con verificaciÃ³n previa
+-- Insertar múltiples registros con verificación previa
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/obtener-url-documentos')
 BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha, ModificaUsuario, ModificaFecha)
     VALUES 
-    (51, 'credito-web/obtener-url-documentos', 'CrÃ©dito - Obtener los documentos a firmar por SignBox', 1, 0, 'WebApi.spObtenerDocumentosParaFirmaElectronica', 1, 1, 0, 0, 'ADMIN', '2025-07-22 00:00:00.000', 'ADMIN', '2025-07-24 11:50:58.007')
+    (51, 'credito-web/obtener-url-documentos', 'Crédito - Obtener los documentos a firmar por SignBox', 1, 0, 'WebApi.spObtenerDocumentosParaFirmaElectronica', 1, 1, 0, 0, 'ADMIN', '2025-07-22 00:00:00.000', 'ADMIN', '2025-07-24 11:50:58.007')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/firmado-signbox')
@@ -15,7 +15,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (52, 'credito-web/firmado-signbox', 'CrÃ©dito - Cambiar el estado del documento a firmado por SignBox', 1, 0, 'WebApi.spCambiarEstadoFirmadoSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-25 16:36:36.840')
+    (52, 'credito-web/firmado-signbox', 'Crédito - Cambiar el estado del documento a firmado por SignBox', 1, 0, 'WebApi.spCambiarEstadoFirmadoSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-25 16:36:36.840')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/error-firma-signbox')
@@ -23,7 +23,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (53, 'credito-web/error-firma-signbox', 'CrÃ©dito - Cambiar el estado de la firma de SignBox a error', 1, 0, 'WebApi.spCambiarEstadoFirmaErrorSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-25 16:52:21.443')
+    (53, 'credito-web/error-firma-signbox', 'Crédito - Cambiar el estado de la firma de SignBox a error', 1, 0, 'WebApi.spCambiarEstadoFirmaErrorSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-25 16:52:21.443')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/obtener-lotes-firmar-OnBoarding')
@@ -31,7 +31,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (54, 'credito-web/obtener-lotes-firmar-OnBoarding', 'CrÃ©dito - Obtener la informaciÃ³n de los lotes y solicitud que se debe intentar firmar por OnBoarding', 1, 0, 'WebApi.spObtenerLotesParaFirmaOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 10:34:58.497')
+    (54, 'credito-web/obtener-lotes-firmar-OnBoarding', 'Crédito - Obtener la información de los lotes y solicitud que se debe intentar firmar por OnBoarding', 1, 0, 'WebApi.spObtenerLotesParaFirmaOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 10:34:58.497')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/obtener-info-solicitante-credito')
@@ -39,7 +39,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (55, 'credito-web/obtener-info-solicitante-credito', 'CrÃ©dito - Obtener la informaciÃ³n del solicitante de crÃ©dito para parametrizar la peticiÃ³n OnBoarding', 1, 0, 'WebApi.spObtenerInfoSolicitanteCredito', 1, 1, 0, 0, 'ADMIN', '2025-07-28 12:13:00.887')
+    (55, 'credito-web/obtener-info-solicitante-credito', 'Crédito - Obtener la información del solicitante de crédito para parametrizar la petición OnBoarding', 1, 0, 'WebApi.spObtenerInfoSolicitanteCredito', 1, 1, 0, 0, 'ADMIN', '2025-07-28 12:13:00.887')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/enviado-onboarding')
@@ -47,7 +47,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (57, 'credito-web/enviado-onboarding', 'CrÃ©dito - Cambiar a estado Enviado el lote de documentos enviados por OnBoarding', 1, 0, 'WebApi.spCambiarEstadoEnviadoOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 16:07:06.600')
+    (57, 'credito-web/enviado-onboarding', 'Crédito - Cambiar a estado Enviado el lote de documentos enviados por OnBoarding', 1, 0, 'WebApi.spCambiarEstadoEnviadoOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 16:07:06.600')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/error-firma-onboarding')
@@ -55,7 +55,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (58, 'credito-web/error-firma-onboarding', 'CrÃ©dito - Cambiar a estado Error el lote de documentos enviados por OnBoarding', 1, 0, 'WebApi.spCambiarEstadoFirmaErrorOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 16:20:29.733')
+    (58, 'credito-web/error-firma-onboarding', 'Crédito - Cambiar a estado Error el lote de documentos enviados por OnBoarding', 1, 0, 'WebApi.spCambiarEstadoFirmaErrorOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 16:20:29.733')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/obtener-lotes-enviados-onboarding')
@@ -63,7 +63,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (59, 'credito-web/obtener-lotes-enviados-onboarding', 'CrÃ©dito - Obtener los lotes enviados por OnBoarding para revisar el estado de la firma', 1, 0, 'WebApi.spObtenerLotesEnviadosOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 17:40:51.110')
+    (59, 'credito-web/obtener-lotes-enviados-onboarding', 'Crédito - Obtener los lotes enviados por OnBoarding para revisar el estado de la firma', 1, 0, 'WebApi.spObtenerLotesEnviadosOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 17:40:51.110')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/cambio-estado-firma-onboarding')
@@ -71,7 +71,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (60, 'credito-web/cambio-estado-firma-onboarding', 'CrÃ©dito - Cambiar el estado de la firma segÃºn la ruta que se encuentra el usuario en el OnBoarding', 1, 0, 'WebApi.spCambiarEstadoFirmaOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 21:28:51.220')
+    (60, 'credito-web/cambio-estado-firma-onboarding', 'Crédito - Cambiar el estado de la firma según la ruta que se encuentra el usuario en el OnBoarding', 1, 0, 'WebApi.spCambiarEstadoFirmaOnBoarding', 1, 1, 0, 0, 'ADMIN', '2025-07-28 21:28:51.220')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/obtener-lotes-guardar-documentos')
@@ -79,7 +79,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (61, 'credito-web/obtener-lotes-guardar-documentos', 'CrÃ©dito - Obtener los lotes para guardar los URLs donde estÃ¡ cada documento firmado por el OnBoarding', 1, 0, 'WebApi.spObtenerLotesParaGuardarDocumentosFirmados', 1, 1, 0, 0, 'ADMIN', '2025-07-29 10:02:13.163')
+    (61, 'credito-web/obtener-lotes-guardar-documentos', 'Crédito - Obtener los lotes para guardar los URLs donde está cada documento firmado por el OnBoarding', 1, 0, 'WebApi.spObtenerLotesParaGuardarDocumentosFirmados', 1, 1, 0, 0, 'ADMIN', '2025-07-29 10:02:13.163')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/guardar-documentos-firmados-por-lote')
@@ -87,7 +87,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (62, 'credito-web/guardar-documentos-firmados-por-lote', 'CrÃ©dito - Guardar los documentos firmados segÃºn su solicitud y cÃ³digo de documento segÃºn la informaciÃ³n del lote', 1, 0, 'WebApi.spGuardarDocumentosFirmadosPorLote', 1, 1, 0, 0, 'ADMIN', '2025-07-29 10:55:46.327')
+    (62, 'credito-web/guardar-documentos-firmados-por-lote', 'Crédito - Guardar los documentos firmados según su solicitud y código de documento según la información del lote', 1, 0, 'WebApi.spGuardarDocumentosFirmadosPorLote', 1, 1, 0, 0, 'ADMIN', '2025-07-29 10:55:46.327')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/insertar-registros_firmaElectronica')
@@ -95,7 +95,7 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (63, 'credito-web/insertar-registros_firmaElectronica', 'CrÃ©dito - Guardar los registros en la tabla encargada de auditar todo el proceso de la firma electrÃ³nica', 1, 0, 'WebApi.spInsertarRegistrosFirmaElectronica', 1, 1, 0, 0, 'ADMIN', '2025-07-29 12:58:04.480')
+    (63, 'credito-web/insertar-registros_firmaElectronica', 'Crédito - Guardar los registros en la tabla encargada de auditar todo el proceso de la firma electrónica', 1, 0, 'WebApi.spInsertarRegistrosFirmaElectronica', 1, 1, 0, 0, 'ADMIN', '2025-07-29 12:58:04.480')
 END
 
 IF NOT EXISTS (SELECT 1 FROM WebApi.SeProcedimiento WHERE Codigo = 'credito-web/obtener-docs-firmar-SignBox')
@@ -103,13 +103,13 @@ BEGIN
     INSERT INTO WebApi.SeProcedimiento 
     (Id, Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    (64, 'credito-web/obtener-docs-firmar-SignBox', 'CrÃ©dito - Obtener los documentos a firmar por SignBox', 1, 0, 'WebApi.spObtenerDocumentosFirmarSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-29 13:14:23.673')
+    (64, 'credito-web/obtener-docs-firmar-SignBox', 'Crédito - Obtener los documentos a firmar por SignBox', 1, 0, 'WebApi.spObtenerDocumentosFirmarSignBox', 1, 1, 0, 0, 'ADMIN', '2025-07-29 13:14:23.673')
 
 
     INSERT INTO WebApi.SeProcedimiento 
     (Codigo, Nombre, Activo, Modulo, NombreProcedimiento, GuardarRequest, GuardarResult, EncriptarResult, EncriptarRequest, CreacionUsuario, CreacionFecha)
     VALUES 
-    ('parametros/obtener-info-firm-coop', 'Parametros - Obtener la informaciÃ³n del firmante de la cooperativa para firma SignBox', 1, 0,
+    ('parametros/obtener-info-firm-coop', 'Parametros - Obtener la información del firmante de la cooperativa para firma SignBox', 1, 0,
 	'WebApi.spObtenerInfoFirmanteCoop', 1, 1, 0, 0, 'ADMIN', '2025-07-29 13:14:23.673')
 END
 

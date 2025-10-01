@@ -1,4 +1,5 @@
-CREATE OR ALTER    PROCEDURE [BancaVirtual].[spGenerarArchivos]
+
+CREATE  OR ALTER    PROCEDURE [BancaVirtual].[spGenerarArchivos]
 @_UserName                          varchar(20),
 @_SessionID                         int output,
 @_CodeReturn                        int output,
@@ -43,8 +44,8 @@ DECLARE
 			FROM CREDITO..SL_DOCUMENTOS
 			WHERE 
 				-- Si el campo es NULL (no requiere monto) o el monto cumple con el mínimo
-				--(doc_monto_minimo_impresion IS NULL
-				--OR @monto >= doc_monto_minimo_impresion) AND 
+				(doc_monto_minimo_impresion IS NULL
+				OR @monto >= doc_monto_minimo_impresion) AND 
 				doc_para_firma_electronica = 1
 
 
@@ -108,6 +109,7 @@ SET @Result = (
 
 
 SET @_CodeReturn = 1	 
+
 
 
 

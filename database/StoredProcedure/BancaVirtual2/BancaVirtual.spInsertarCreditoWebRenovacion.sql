@@ -1,6 +1,6 @@
-use BancaVirtual2
-go 
-CREATE OR ALTER   procedure [BancaVirtual].[spInsertarCreditoWebRenovacion]
+USE BancaVirtual2
+go
+CREATE   OR ALTER   procedure [BancaVirtual].[spInsertarCreditoWebRenovacion]
 @AS_JSON                           varchar(MAX),
 @usuarioID							INT,
 @AS_CREDITO							VARCHAR(50),
@@ -38,7 +38,8 @@ declare
 			@cuentaDesembolso varchar(16),
 			@NumeroCuenta varchar(16),
 			@entidadFinanciera int,
-			@LI_TRA_ID INT
+			@LI_TRA_ID INT,
+			@AI_SOLICITUD_RENOVACION INT 
 
 
 		 	SELECT
@@ -65,6 +66,8 @@ declare
 		 tipoCuenta varchar(1) '$.referenciaBancaria.tipoCuenta',
 		 numeroCuenta varchar(16) '$.referenciaBancaria.numeroCuenta');
 
+
+		 SELECT 'RENOVACION'
 
 
 	set @tasa = CREDITO.dbo.f_cr_obtener_tasa_producto('CRWEB')
@@ -176,7 +179,7 @@ declare
 	sol_producto = pro_producto 
 	and sol_solicitud = @solicitud
 	
-	SELECT TOP 1 @AS_PROPIETARIO = ISNULL(usu_usuario,'LBAQUERIZO') FROM  PARAMETROS..SE_USUARIOS, BancaVirtual.CredencialesFirmantesCoop
+	SELECT TOP 1 @AS_PROPIETARIO = ISNULL(usu_usuario,'LJORDAN') FROM  PARAMETROS..SE_USUARIOS, BancaVirtual.CredencialesFirmantesCoop
 	WHERE usu_id = Identificacion
 	and Estado = 'A'
 	
@@ -217,7 +220,7 @@ declare
 		RETURN
 	END 
 
-   EXEC CREDITO..sp_sl_procesar_aprobacion @solicitud,'A', NULL, 'NINGUNA',@montoMaximo,'M','M',@plazoMaximo,'JSANCHEZ', @AS_MSJ OUTPUT, NULL, NULL
+   EXEC CREDITO..sp_sl_procesar_aprobacion @solicitud,'A', NULL, 'NINGUNA',@montoMaximo,'M','M',@plazoMaximo,'MNAVARRETE', @AS_MSJ OUTPUT, NULL, NULL
 	 IF @_CodeReturn = -1 
 	BEGIN 
 		
@@ -225,7 +228,7 @@ declare
 		RETURN
 	END 
 
-	EXEC CREDITO..sp_sl_procesar_aprobacion @solicitud,'A', NULL, 'NINGUNA',@montoMaximo,'M','M',@plazoMaximo,'YPONCE', @AS_MSJ OUTPUT, NULL, NULL
+	EXEC CREDITO..sp_sl_procesar_aprobacion @solicitud,'A', NULL, 'NINGUNA',@montoMaximo,'M','M',@plazoMaximo,'KAGUIRRE', @AS_MSJ OUTPUT, NULL, NULL
 	 IF @_CodeReturn = -1 
 	BEGIN 
 		
@@ -234,8 +237,17 @@ declare
 	END 
 
 
-	EXEC CREDITO..sp_sl_solicitud_cambiar_estado @solicitud,'S', '1', @AS_PROPIETARIO
-	EXEC CREDITO..sp_sl_solicitud_cambiar_estado @solicitud,'A', '1', @AS_PROPIETARIO
+	UPDATE CREDITO..SL_SOLICITUD 
+	set sol_estado = 'S'
+	WHERE sol_solicitud = @solicitud 
+
+
+	SET @AI_ID_SOLICITUD = @solicitud
+
+
+
+
+	EXEC CREDITO..sp_sl_solicitud_cambiar_estado @solicitud,'A', '1', 'ADMIN'
 	
 	--select @entidadFinanciera = cli_entidad_financiera
 	--from CLIENTES..CL_CLIENTE
@@ -283,7 +295,7 @@ declare
 	--		SELECT  @cuentaDesembolso = AH_CUENTAS.cue_cuenta     
 	--FROM CUENTAS..AH_CUENTAS , CUENTAS..AH_TIPOS_CUENTA     
 	--WHERE ( AH_CUENTAS.cue_tipo = AH_TIPOS_CUENTA.tip_tipo_cuenta ) 
-	--and          ( ( AH_CUENTAS.cue_estado in ( 'A', 'P' ) ) 
+	--and ( ( AH_CUENTAS.cue_estado in ( 'A', 'P' ) ) 
 	--and          ( AH_CUENTAS.cue_cliente = @usuarioID) 
 	--and          ( AH_CUENTAS.cue_tipo = 'O' ) )  
 	--END
@@ -342,6 +354,8 @@ declare
 		
 
 SET @_CodeReturn = 1
+
+
 
 
 

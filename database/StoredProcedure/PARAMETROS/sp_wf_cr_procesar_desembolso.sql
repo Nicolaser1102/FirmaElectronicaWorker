@@ -1,6 +1,6 @@
 USE PARAMETROS 
 GO
-CREATE OR ALTER PROCEDURE [dbo].[sp_wf_cr_procesar_desembolso]
+CREATE OR ALTER  PROCEDURE [dbo].[sp_wf_cr_procesar_desembolso]
 @AI_ID_SOLICITUD INT,
 @AS_USUARIO VARCHAR(15),
 @AS_XML NVARCHAR(4000),
@@ -114,14 +114,14 @@ SET @LS_PRODUCTO = (SELECT sol_producto FROM CREDITO..SL_SOLICITUD where sol_sol
 IF @LS_PRODUCTO = 'CRWEB'
 	BEGIN 
 
-		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LI_SOLICITUD
 						)
 						BEGIN 
 							SET @AS_MSJ = 'NO SE PUDIERON ENVIAR LAS SOLICITUDES DE FIRMA DE ONBOARDING'
 							RETURN -1
 						END 
 
-		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LI_SOLICITUD
 						AND  OnBoardingRutaDocumento IS NULL AND OnBoardingEstadoFirma != 'F' )
 						BEGIN 
 							SET @AS_MSJ = 'DOCUMENTOS PENDIENTES DE FIRMA ELECTRÓNICA'
@@ -273,4 +273,6 @@ END
 	
 RETURN 1	
 		
+
+
 

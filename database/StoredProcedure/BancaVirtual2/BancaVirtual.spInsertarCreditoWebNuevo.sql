@@ -1,7 +1,6 @@
 USE BancaVirtual2
 go
-
-CREATE   OR ALTER  procedure [BancaVirtual].[spInsertarCreditoWebNuevo]
+CREATE  OR ALTER    procedure [BancaVirtual].[spInsertarCreditoWebNuevo]
 @AS_JSON                           varchar(MAX),
 @usuarioID							INT,
 @AS_MSJ								VARCHAR(100) output,
@@ -242,13 +241,10 @@ declare
 		RETURN
 	END 
 
-
+	SELECT 'CREDITO NUEVO'
 
 	--Cambiar estado de la solicitud a Aprobado
-
-	EXEC CREDITO..sp_sl_solicitud_cambiar_estado @solicitud,'A', '1', @AS_PROPIETARIO
-
-
+	EXEC CREDITO..sp_sl_solicitud_cambiar_estado @solicitud,'A', '1', 'ADMIN'
 
 	----HASTA AQUI SE APRUEBA EL CREDITO YA DESPUÉS ES DESEMBOLSO
 
@@ -298,7 +294,7 @@ declare
 			--ELSE
 
 			--BEGIN
-			--		SELECT  @cuentaDesembolso = AH_CUENTAS.cue_cuenta     
+			--		SELECT @cuentaDesembolso = AH_CUENTAS.cue_cuenta     
 			--FROM CUENTAS..AH_CUENTAS , CUENTAS..AH_TIPOS_CUENTA     
 			--WHERE ( AH_CUENTAS.cue_tipo = AH_TIPOS_CUENTA.tip_tipo_cuenta ) 
 			--and          ( ( AH_CUENTAS.cue_estado in ( 'A', 'P' ) ) 
@@ -342,8 +338,5 @@ declare
 set @AI_ID_SOLICITUD = @solicitud
 SET @_CodeReturn = 1	
 SET @AS_CREDITO = @CREDITO
-
-
-
 
 
