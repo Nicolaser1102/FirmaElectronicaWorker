@@ -22,7 +22,8 @@ declare
 			@credito varchar(50),
 			@valor money,
 			@FechaSis datetime,
-			@AS_CREDITO varchar(20)
+			@AS_CREDITO varchar(20),
+			@AS_SOLICITUD_RENOVACION INT 
 
 	select @FechaSis = GETDATE()
      
@@ -190,6 +191,7 @@ if @RET = -1
 			RETURN
 		end
 		SET @Proceso = 'R'
+		SET @solicitud = @solicitud
 	
 	END
 
