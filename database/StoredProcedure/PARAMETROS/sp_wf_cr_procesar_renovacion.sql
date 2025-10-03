@@ -1,7 +1,6 @@
-use parametros 
-go
-
-CREATE or alter    PROCEDURE [sp_wf_cr_procesar_renovacion]
+USE PARAMETROS 
+GO
+CREATE   OR ALTER   PROCEDURE [sp_wf_cr_procesar_renovacion]
 @AI_ID_SOLICITUD INT,
 @AS_USUARIO VARCHAR(15),
 @AS_XML NVARCHAR(4000),
@@ -250,6 +249,7 @@ IF @LS_PRODUCTO = 'CRWEB'
 	--RETURN -1
 	RETURN @LI_RET
 END
+
 
 
 

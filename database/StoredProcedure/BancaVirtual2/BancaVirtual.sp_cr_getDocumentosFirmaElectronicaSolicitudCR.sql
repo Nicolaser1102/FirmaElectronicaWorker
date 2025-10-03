@@ -2,26 +2,21 @@ USE BancaVirtual2
 go 
 
 CREATE OR ALTER PROCEDURE [BancaVirtual].[sp_cr_getDocumentosFirmaElectronicaSolicitudCR]
-    @AI_SOLCITUD INT
+    @AI_SOLICITUD INT
 AS
 BEGIN
-    SELECT 
-		[Solicitud] = Solicitud,
-		[CodigoDocumento] = CodigoDocumento,
-		[EstadoDocumentoSignBox] = CASE WHEN SignboxEstadoFirma = 'I' THEN 'INGRESADO'
-										WHEN SignboxEstadoFirma =  'F' THEN 'FIRMADO'
-										ELSE 'ERROR'
-										END,
-
+SELECT 
+		
+		[NombreDocumento] = (SELECT ISNULL(doc_descripcion,'ERROR') from CREDITO..SL_DOCUMENTOS where 
+								doc_datawindow = CodigoDocumento),
 		[DocumentoFirmadoSignBoxUrl] = SignBoxWeebhookPdf,
-		[EstadoDocumentoOnBoarding] = CASE WHEN SignboxEstadoFirma = 'I' THEN 'INGRESADO'
-										WHEN SignboxEstadoFirma =  'F' THEN 'FIRMADO'
-										WHEN SignboxEstadoFirma =  'E' THEN 'ERROR'
-										ELSE 'EN PROCESO'
-										END,
-		[DocumentosFirmadosOnBoardingUrl] = OnBoardingRutaDocumento
+		[DocumentosFirmadosOnBoardingUrl] = OnBoardingRutaDocumento,
+		[EstadoDocumentoSignBox] = CASE WHEN OnBoardingEstadoFirma = 'I' THEN 'INGRESADO'
+										WHEN OnBoardingEstadoFirma =  'F' THEN 'FIRMADO'
+										ELSE OnBoardingEstadoFirma
+										END
 		
 	FROM 
 	[BancaVirtual].[DocumentosFirmaElectronica]
-	where Solicitud  = @AI_SOLCITUD 
+	where Solicitud  = @AI_SOLICITUD 
 END

@@ -19,7 +19,7 @@ AS
 	WHERE sol_id_solicitud = @AI_ID_SOLICITUD
 
 
-SET @LS_PRODUCTO = (SELECT sol_producto FROM SL_SOLICITUD where sol_solicitud = @LI_SOLICITUD)
+SET @LS_PRODUCTO = (SELECT sol_producto FROM CREDITO..SL_SOLICITUD where sol_solicitud = @LI_SOLICITUD)
 
 IF @LS_PRODUCTO = 'CRWEB'
 	BEGIN 

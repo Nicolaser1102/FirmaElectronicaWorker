@@ -4,6 +4,7 @@ using FirmaElectronicaWorker.Interfaces;
 using FirmaElectronicaWorker.Models;
 using FirmaElectronicaWorker.Utils;
 using Microsoft.Extensions.Options;
+using PdfSharpCore.Pdf.Advanced;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -295,51 +296,49 @@ namespace FirmaElectronicaWorker.Services
                 string url = _urls.SignDocumentUrlSignBox;
 
                 using var client = _httpClientFactory.CreateClient();
+               
 
                 string token = await ObtenerTokenSignBoxAsync();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
 
+
+
+
+                //////////////////////////
+
+                // Abrir stream directamente desde disco
+
                 var content = new MultipartFormDataContent();
 
+                //var pdfStream = new FileStream(doc.RutaArchivo, FileMode.Open, FileAccess.Read);
+                //var pdfContent = new StreamContent(pdfStream);
+                //pdfContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+                //content.Add(pdfContent, "fileIn", Path.GetFileName(doc.RutaArchivo));
 
-                string rutaArchivo = doc.RutaArchivo;
-                if (!File.Exists(rutaArchivo))
-                {
-                    string errorMsg = $"El archivo no existe: {rutaArchivo}";
-                    _logger.LogWarning(errorMsg);
-
-                    return new SignBoxSignResponse
-                    {
-                        Result = false,
-                        Status = "ERROR CON LEER ARCHIVOS DESDE EL DISCO",
-                        Detail = errorMsg,
-                        WebhookPdf = string.Empty,
-                        WebhookTxt = string.Empty
-                    };
-                }
-                var pdfStream = new FileStream(rutaArchivo, FileMode.Open, FileAccess.Read);
-                var pdfContent = new StreamContent(pdfStream);
-                pdfContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
-                content.Add(pdfContent, "fileIn", Path.GetFileName(rutaArchivo));
+           
 
 
+                ///////////////////////
+
+
+
+
+                //string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}_{Guid.NewGuid()}";
                 string webhookId = $"sign_{doc.CodigoDocumento}_{doc.Solicitud}";
                 content.Add(new StringContent(webhookId), "webhookId");
 
+                content.Add(new StreamContent(File.OpenRead(doc.RutaArchivo)), "fileIn", doc.RutaArchivo);
 
-
-                if (string.IsNullOrWhiteSpace(infoFirmante.ImagenFirma))
+                try
                 {
-                    _logger.LogWarning("La imagen de la firma está vacía o nula.");
-
-                }
-                else
-                {
-                    // Intentar convertir a bytes para validar el formato base64
+                    Convert.FromBase64String(infoFirmante.ImagenFirma);
                     content.Add(new StringContent(infoFirmante.ImagenFirma), "image");
                 }
-
+                catch
+                {
+                    _logger.LogWarning("⚠️ Imagen de firma inválida en base64.");
+                }
 
 
                 var reasonFirma = $"Firma de doc: {doc.CodigoDocumento}_Sol{doc.Solicitud}_firmanteCoop";
@@ -367,7 +366,7 @@ namespace FirmaElectronicaWorker.Services
                                         }
                     }
                 };
-                string json = JsonSerializer.Serialize(paragraphFormat);
+
                 string paragrapgFormatjson = JsonSerializer.Serialize(paragraphFormat);
                 content.Add(new StringContent(paragrapgFormatjson), "paragraphFormat");
 
@@ -382,6 +381,7 @@ namespace FirmaElectronicaWorker.Services
                     _logger.LogWarning($"⚠️ La página de firma ({doc.UbicacionPaginaFirma}) está fuera del rango del documento ({totalPaginas} páginas)");
                     ubicacionPaginaFirma = (totalPaginas - 1).ToString();
                 }
+
                 content.Add(new StringContent(ubicacionPaginaFirma), "npage");
 
 
@@ -390,6 +390,9 @@ namespace FirmaElectronicaWorker.Services
                 content.Add(new StringContent(infoFirmante.Password), "password");
                 content.Add(new StringContent(infoFirmante.Pin), "pin");
                 content.Add(new StringContent(doc.Coordenadas), "position");
+
+
+
 
 
                 var response = await client.PostAsync(url, content);
@@ -402,15 +405,16 @@ namespace FirmaElectronicaWorker.Services
                     try
                     {
                         var apiError = JsonSerializer.Deserialize<ApiErrorResponse>(result);
-                        var detalles = apiError.Violations != null
+                        var detalles = apiError?.Violations != null
                             ? string.Join("; ", apiError.Violations.Select(v => $"{v.Field}: {v.Message}"))
-                            : apiError.Message;
+                            : apiError?.Message;
 
                         return new SignBoxSignResponse
                         {
                             Result = false,
-                            Status = apiError.Status.ToString(),
-                            Detail = $"Error {apiError.Status} {apiError.Title}: {detalles}",
+
+                            Status = !string.IsNullOrEmpty(apiError?.Status.ToString()) ? apiError.Status.ToString() : "500",
+                            Detail = $"Error {apiError?.Status} {apiError?.Title}: {detalles}",
                             WebhookTxt = string.Empty,
                             WebhookPdf = string.Empty
                         };
@@ -430,8 +434,8 @@ namespace FirmaElectronicaWorker.Services
                 }
 
      
-                var éxito = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
-                if (éxito == null)
+                var exito = JsonSerializer.Deserialize<SignBoxSignResponse>(result);
+                if (exito == null)
                 {
                     return new SignBoxSignResponse
                     {
@@ -442,7 +446,7 @@ namespace FirmaElectronicaWorker.Services
                         WebhookPdf = string.Empty
                     };
                 }
-                return éxito;
+                return exito;
             }
             catch (Exception ex)
             {

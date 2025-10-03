@@ -31,7 +31,7 @@ as
 									dog_reporte_codigo = CodigoDocumento AND 
 
 									--Condiciones para obtener documentos
-									SignboxEstadoFirma in ('I','E')
+									SignboxEstadoFirma in ('I','R')
 								
     						
 					FOR JSON PATH)

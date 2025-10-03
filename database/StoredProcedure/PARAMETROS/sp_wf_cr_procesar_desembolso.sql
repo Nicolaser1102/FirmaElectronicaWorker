@@ -1,6 +1,6 @@
 USE PARAMETROS 
 GO
-CREATE OR ALTER PROCEDURE [dbo].[sp_wf_cr_procesar_desembolso]
+CREATE OR ALTER  PROCEDURE [dbo].[sp_wf_cr_procesar_desembolso]
 @AI_ID_SOLICITUD INT,
 @AS_USUARIO VARCHAR(15),
 @AS_XML NVARCHAR(4000),
@@ -273,4 +273,6 @@ END
 	
 RETURN 1	
 		
+
+
 
