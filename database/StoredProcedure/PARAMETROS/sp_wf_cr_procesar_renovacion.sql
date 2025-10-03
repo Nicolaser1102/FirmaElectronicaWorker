@@ -173,53 +173,53 @@ IF @LS_PRODUCTO = 'CRWEB'
 					
 					
 
-	IF(@LI_RET <> 1)
-		RETURN @LI_RET
+	--IF(@LI_RET <> 1)
+	--	RETURN @LI_RET
 
-		IF @LS_PRODUCTO = 'CRWEB'
-	BEGIN 
-	--Enviar notificación SMS del desembolso
-		EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[sp_crm_notif_sms_cr_desembolso_crbv]
-					@LI_ID  OUTPUT,
-					@LI_SOLICITUD ,
-					'ADMIN',
-					@AS_MSJ	 OUTPUT
+	--	IF @LS_PRODUCTO = 'CRWEB'
+	--BEGIN 
+	----Enviar notificación SMS del desembolso
+	--	EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[sp_crm_notif_sms_cr_desembolso_crbv]
+	--				@LI_ID  OUTPUT,
+	--				@LI_SOLICITUD ,
+	--				'ADMIN',
+	--				@AS_MSJ	 OUTPUT
 
-					 IF @@ERROR <> 0
-		BEGIN
-			PRINT 'Error al enviar SMS de encuesta de solicitud para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
-			--RETURN -1;
-		END
+	--				 IF @@ERROR <> 0
+	--	BEGIN
+	--		PRINT 'Error al enviar SMS de encuesta de solicitud para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+	--		--RETURN -1;
+	--	END
 
 	
-		DECLARE		@_UserName varchar(20),
-					@_SessionId int = NULL,
-					@_CodeReturn int,
-					@_Message varchar(200),
-					@Request varchar(max),
-					@Result varchar(max)
+	--	DECLARE		@_UserName varchar(20),
+	--				@_SessionId int = NULL,
+	--				@_CodeReturn int,
+	--				@_Message varchar(200),
+	--				@Request varchar(max),
+	--				@Result varchar(max)
 
 
-					SELECT @_UserName = UserName FROM BancaVirtual2.BancaVirtual.Usuario, CREDITO..SL_SOLICITUD where ClienteId = sol_cliente
-					and sol_solicitud = @LI_SOLICITUD
+	--				SELECT @_UserName = UserName FROM BancaVirtual2.BancaVirtual.Usuario, CREDITO..SL_SOLICITUD where ClienteId = sol_cliente
+	--				and sol_solicitud = @LI_SOLICITUD
 
-					SET @Request = '{ "credito": "' + @LS_CREDITO + '" }'
+	--				SET @Request = '{ "credito": "' + @LS_CREDITO + '" }'
 
-		EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[spNotificacionEmailDesembolsoCreditoCRW]
-						@_UserName                          ,
-						@_SessionID                        output,
-						@_CodeReturn                        output,
-						@_Message                            output,
-						@Request                            ,
-						@Result                              output
+	--	EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[spNotificacionEmailDesembolsoCreditoCRW]
+	--					@_UserName                          ,
+	--					@_SessionID                        output,
+	--					@_CodeReturn                        output,
+	--					@_Message                            output,
+	--					@Request                            ,
+	--					@Result                              output
 
-						  IF @@ERROR <> 0
-		BEGIN
-			PRINT 'Error al enviar correo para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
-		   -- RETURN -1;
-		END
+	--					  IF @@ERROR <> 0
+	--	BEGIN
+	--		PRINT 'Error al enviar correo para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+	--	   -- RETURN -1;
+	--	END
 
-	END
+	--END
 
 
 	IF EXISTS(	SELECT 1
