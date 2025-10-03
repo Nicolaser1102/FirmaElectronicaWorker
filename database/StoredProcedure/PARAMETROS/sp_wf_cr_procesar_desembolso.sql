@@ -114,14 +114,14 @@ SET @LS_PRODUCTO = (SELECT sol_producto FROM CREDITO..SL_SOLICITUD where sol_sol
 IF @LS_PRODUCTO = 'CRWEB'
 	BEGIN 
 
-		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LI_SOLICITUD
 						)
 						BEGIN 
 							SET @AS_MSJ = 'NO SE PUDIERON ENVIAR LAS SOLICITUDES DE FIRMA DE ONBOARDING'
 							RETURN -1
 						END 
 
-		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LI_SOLICITUD
 						AND  OnBoardingRutaDocumento IS NULL AND OnBoardingEstadoFirma != 'F' )
 						BEGIN 
 							SET @AS_MSJ = 'DOCUMENTOS PENDIENTES DE FIRMA ELECTRÓNICA'

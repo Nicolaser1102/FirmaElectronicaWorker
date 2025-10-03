@@ -11,7 +11,9 @@ BEGIN
 	DECLARE @LI_SOLICITUD INT,
 			@LI_RET INT,
 			@LS_TIPO_OP CHAR(1) ,@LI_ID INT,
-			@LS_PRODUCTO VARCHAR(20)
+			@LS_PRODUCTO VARCHAR(20),
+			@LI_CLIENTE INT,
+			@LS_TIPO_CUENTA CHAR(2)
 			
 	SELECT @LI_SOLICITUD = CONVERT ( INT, sol_referencia)
 	FROM WF_SOLICITUD
@@ -28,9 +30,10 @@ BEGIN
 			@LI_RENOVACION_AUTOMATICA BIT,
 			@LS_TIPO_TRAN CHAR(3), 
 			@LS_REFERENCIA VARCHAR(20), 
+			@LS_CUENTA VARCHAR(20),
 			@LS_CUENTA_DEB VARCHAR(20), 
 			@LDT_FECHA_VALOR DATETIME,
-			@LI_BANCO INTEGER,
+			@LI_BANCO VARCHAR(25),
 			@LI_CUENTA INTEGER,
 			@LI_TRA_ID INTEGER,
 			@LS_DESMBOLSO CHAR(3),
@@ -78,7 +81,8 @@ FROM   OPENXML (@idoc, N'//DATOS')
 EXEC sp_xml_removedocument @idoc
 
 
-SELECT @LS_TIPO_OP = sol_tipo_operacion  
+SELECT @LS_TIPO_OP = sol_tipo_operacion ,
+@LI_CLIENTE = sol_cliente
 FROM CREDITO..SL_SOLICITUD
 WHERE sol_solicitud = @LI_SOLICITUD
 
@@ -96,25 +100,55 @@ BEGIN
 
 END 
 
-
 SET @LS_PRODUCTO = (SELECT sol_producto FROM CREDITO..SL_SOLICITUD where sol_solicitud = @LI_SOLICITUD)
 
 IF @LS_PRODUCTO = 'CRWEB'
 	BEGIN 
 
-		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+		IF NOT EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LI_SOLICITUD
 						)
 						BEGIN 
 							SET @AS_MSJ = 'NO SE PUDIERON ENVIAR LAS SOLICITUDES DE FIRMA DE ONBOARDING'
 							RETURN -1
 						END 
 
-		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LS_REFERENCIA
+		IF EXISTS (SELECT * FROM BancaVirtual2.BancaVirtual.DocumentosFirmaElectronica WHERE Solicitud = @LI_SOLICITUD
 						AND  OnBoardingRutaDocumento IS NULL AND OnBoardingEstadoFirma != 'F' )
 						BEGIN 
 							SET @AS_MSJ = 'DOCUMENTOS PENDIENTES DE FIRMA ELECTRÓNICA'
 							RETURN -1
 						END 
+		IF @LI_CUENTA = 0 OR @LI_CUENTA IS NULL
+			BEGIN 
+			IF EXISTS (SELECT 1    
+					FROM CUENTAS..AH_CUENTAS , CUENTAS..AH_TIPOS_CUENTA     
+					WHERE ( AH_CUENTAS.cue_tipo = AH_TIPOS_CUENTA.tip_tipo_cuenta ) 
+					and          ( ( AH_CUENTAS.cue_estado in ( 'A', 'P' ) ) 
+					and          ( AH_CUENTAS.cue_cliente = @LI_CLIENTE) 
+					and          ( AH_TIPOS_CUENTA.tip_es_ahorro_ordinario = 1 ) )  )
+
+					BEGIN
+						SELECT  @LS_CUENTA = AH_CUENTAS.cue_cuenta, @LS_TIPO_CUENTA = AH_CUENTAS.cue_tipo      
+					FROM CUENTAS..AH_CUENTAS , CUENTAS..AH_TIPOS_CUENTA     
+					WHERE ( AH_CUENTAS.cue_tipo = AH_TIPOS_CUENTA.tip_tipo_cuenta ) 
+					and          ( ( AH_CUENTAS.cue_estado in ( 'A', 'P' ) ) 
+					and          ( AH_CUENTAS.cue_cliente = @LI_CLIENTE) 
+					and          ( AH_TIPOS_CUENTA.tip_es_ahorro_ordinario = 1 ) )  
+					END
+
+					ELSE
+
+						BEGIN
+								SELECT  @LS_CUENTA = AH_CUENTAS.cue_cuenta   , @LS_TIPO_CUENTA = AH_CUENTAS.cue_tipo  
+						FROM CUENTAS..AH_CUENTAS , CUENTAS..AH_TIPOS_CUENTA     
+						WHERE ( AH_CUENTAS.cue_tipo = AH_TIPOS_CUENTA.tip_tipo_cuenta ) 
+						and          ( ( AH_CUENTAS.cue_estado in ( 'A', 'P' ) ) 
+						and          ( AH_CUENTAS.cue_cliente = @LI_CLIENTE) 
+						and          ( AH_CUENTAS.cue_tipo = 'O' ) )  
+						END
+					
+				END
+	
 	END 
 
 	EXEC @LI_RET =  CREDITO..sp_cr_renovacion_credito
@@ -133,59 +167,60 @@ IF @LS_PRODUCTO = 'CRWEB'
 					@AS_REFERENCIA = @LS_REFERENCIA,
 					@ADT_FECHA_VALOR = @LDT_FECHA_VALOR,
 					@AI_BANCO_DEP  = @LI_BANCO,
-					@AI_CUENTA_DEP  = @LI_CUENTA,
-					@AS_TIPO_DESEMBOLSO = @LS_DESMBOLSO 
+					@AS_CUENTA_DEP  = @LS_CUENTA,
+					@AS_TIPO_DESEMBOLSO = @LS_DESMBOLSO,
+					@AS_TIPO_CUENTA_DEP = @LS_TIPO_CUENTA
 
 					
 					
 
-	IF(@LI_RET <> 1)
-		RETURN @LI_RET
+	--IF(@LI_RET <> 1)
+	--	RETURN @LI_RET
 
-		IF @LS_PRODUCTO = 'CRWEB'
-	BEGIN 
-	--Enviar notificación SMS del desembolso
-		EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[sp_crm_notif_sms_cr_desembolso_crbv]
-					@LI_ID  OUTPUT,
-					@LI_SOLICITUD ,
-					'ADMIN',
-					@AS_MSJ	 OUTPUT
+	--	IF @LS_PRODUCTO = 'CRWEB'
+	--BEGIN 
+	----Enviar notificación SMS del desembolso
+	--	EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[sp_crm_notif_sms_cr_desembolso_crbv]
+	--				@LI_ID  OUTPUT,
+	--				@LI_SOLICITUD ,
+	--				'ADMIN',
+	--				@AS_MSJ	 OUTPUT
 
-					 IF @@ERROR <> 0
-		BEGIN
-			PRINT 'Error al enviar SMS de encuesta de solicitud para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
-			--RETURN -1;
-		END
+	--				 IF @@ERROR <> 0
+	--	BEGIN
+	--		PRINT 'Error al enviar SMS de encuesta de solicitud para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+	--		--RETURN -1;
+	--	END
 
 	
-		DECLARE		@_UserName varchar(20),
-					@_SessionId int = NULL,
-					@_CodeReturn int,
-					@_Message varchar(200),
-					@Request varchar(max),
-					@Result varchar(max)
+	--	DECLARE		@_UserName varchar(20),
+	--				@_SessionId int = NULL,
+	--				@_CodeReturn int,
+	--				@_Message varchar(200),
+	--				@Request varchar(max),
+	--				@Result varchar(max)
 
 
-					SELECT @_UserName = UserName FROM BancaVirtual2.BancaVirtual.Usuario, CREDITO..SL_SOLICITUD where ClienteId = sol_cliente
-					and sol_solicitud = @LI_SOLICITUD
+	--				SELECT @_UserName = UserName FROM BancaVirtual2.BancaVirtual.Usuario, CREDITO..SL_SOLICITUD where ClienteId = sol_cliente
+	--				and sol_solicitud = @LI_SOLICITUD
 
-					SET @Request = '{ "credito": "' + @LS_CREDITO + '" }'
+	--				SET @Request = '{ "credito": "' + @LS_CREDITO + '" }'
 
-		EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[spNotificacionEmailDesembolsoCreditoCRW]
-						@_UserName                          ,
-						@_SessionID                        output,
-						@_CodeReturn                        output,
-						@_Message                            output,
-						@Request                            ,
-						@Result                              output
+	--	EXEC @LI_RET = [BancaVirtual2].[BancaVirtual].[spNotificacionEmailDesembolsoCreditoCRW]
+	--					@_UserName                          ,
+	--					@_SessionID                        output,
+	--					@_CodeReturn                        output,
+	--					@_Message                            output,
+	--					@Request                            ,
+	--					@Result                              output
 
-						  IF @@ERROR <> 0
-		BEGIN
-			PRINT 'Error al enviar correo para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
-		   -- RETURN -1;
-		END
+	--					  IF @@ERROR <> 0
+	--	BEGIN
+	--		PRINT 'Error al enviar correo para la solicitud ' + CAST(@LI_SOLICITUD AS VARCHAR);
+	--	   -- RETURN -1;
+	--	END
 
-	END
+	--END
 
 
 	IF EXISTS(	SELECT 1

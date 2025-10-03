@@ -107,7 +107,7 @@ BEGIN
         'CR',
         'Anular solicitudes Firma Electrónica',
         'A',
-        'CREDITO..sp_cr_cierre_anular_solicitudes_firma_electronica',
+        'CREDITO..sp_cr_cierre_anular_solicitudes_firma_electr',
         'D',
         'ADMIN',
         GETDATE()
